@@ -91,8 +91,8 @@ datetime.append <- function(x, date = NULL, time = NULL, dateTime = NULL, dateFo
         monthDays<- lubridate::days_in_month(a)
         numDays1<-c(numDays1, unname(unlist(monthDays)))
         Seq1<-seq(1, unname(unlist(monthDays)),1)
-        seqFrame<- expand.grid(monthSeq[a], Seq1)
-        daySeqFrame<-data.frame(data.table::rbindlist(list(daySeqFrame,seqFrame)))
+        seqFrame<- expand.grid(monthSeq[a], Seq1, stringsAsFactors = TRUE)
+        daySeqFrame<-data.frame(data.table::rbindlist(list(daySeqFrame,seqFrame)), stringsAsFactors = TRUE)
       }
       dataTime<- lubridate::hms(timestamp)
       dataHours<- lubridate::hour(dataTime) + 1 #assuming timestamp system is hours 0-23, not 1-24
@@ -102,7 +102,7 @@ datetime.append <- function(x, date = NULL, time = NULL, dateTime = NULL, dateFo
       for(b in startYear:endYear){ #added 02/06/2019. No longer will this function always start on year 2001
         year <- b
         daySeqFrame$year <- year
-        yearFrame<-data.frame(data.table::rbindlist(list(yearFrame,daySeqFrame)))
+        yearFrame<-data.frame(data.table::rbindlist(list(yearFrame,daySeqFrame)), stringsAsFactors = TRUE)
       }   
       rowCall<- ceiling(dataHours/24)
       if(dateFormat == "mdy"){
@@ -181,7 +181,7 @@ datetime.append <- function(x, date = NULL, time = NULL, dateTime = NULL, dateFo
       timevec =	lubridate::with_tz(timevec,tz=tz.out)
     }
 
-    cbindTab<- data.frame(matrix(ncol = 0, nrow = length(timevec)))
+    cbindTab<- data.frame(matrix(ncol = 0, nrow = length(timevec)), stringsAsFactors = TRUE)
 
     if(rm.dateTime == FALSE){
       cbindTab$dateTime <- timevec
@@ -212,24 +212,15 @@ datetime.append <- function(x, date = NULL, time = NULL, dateTime = NULL, dateFo
       }
     }
     if(totalSecond == TRUE){ 
-      startID <- 1
-      x<-x[order(timevec),] #Just in case the data wasn't already ordered in this way.
-      cbindTab<-cbindTab[order(timevec),]
-      daySecondVec <-daySecondVec[order(timevec)] 
-      timevec <-timevec[order(timevec)]
+      
       lub.dates = lubridate::date(timevec)
-      dateseq = unique(lub.dates)
-      dayIDVec = NULL
-      dayIDseq = seq(startID,(length(dateseq) + startID - 1),1)
-      for(b in dayIDseq){
-        ID = rep(b,length(which(lub.dates == dateseq[which(dayIDseq == b)])))
-        dayIDVec = c(dayIDVec, ID)
-      } #This part of the function takes awhile (especially for large datasets), but may be useful in the future for subsetting and viewing data.
-    }
-
-    if(totalSecond == TRUE){ #assumes dayIDs are sequential
-      cbindTab$totalSecond = ((dayIDVec - min(dayIDVec))*86400) + daySecondVec #This calculates the total second (the cumulative second across the span of the study's timeframe)
-    }
+      x<-x[order(lub.dates, daySecondVec),] #Just in case the data wasn't already ordered in this way.
+      cbindTab<-cbindTab[order(lub.dates, daySecondVec),]
+      timevec <-timevec[order(lub.dates, daySecondVec)]
+      cbindTab$totalSecond<- difftime(timevec ,timevec[1] , units = c("secs")) #adds the total second column to the dataframe
+      
+      }
+    
     bindlist<-list(x,cbindTab)
     appendedTab<-do.call("cbind", bindlist)
     return(appendedTab)

@@ -47,13 +47,10 @@
 #'    coordinates (i.e., longitude and lattitude). If FALSE, point.x and 
 #'    point.y contain planar coordinates. Defaults to FALSE.
 #' @param parallel Logical. If TRUE, sub-functions within the mps wrapper will 
-#'    be parallelized. Note that this can significantly speed up processing of 
-#'    relatively small data sets, but may cause R to crash due to lack of 
-#'    available memory when attempting to process large datasets. Defaults to 
-#'    FALSE.
+#'    be parallelized. Defaults to FALSE.
 #' @param nCores Integer. Describes the number of cores to be dedicated to 
-#'    parallel processes. Defaults to the maximum number of cores available
-#'    (i.e., parallel::detectCores()).
+#'    parallel processes. Defaults to half of the maximum number of cores 
+#'    available (i.e., (parallel::detectCores()/2)).
 #' @param filterOutput Logical. If TRUE, output will be a data frame or list of
 #'    data frames (depending on whether or not x is a data frame or not) 
 #'    containing only points that adhere to the mpsThreshold rule. If FALSE, no
@@ -67,6 +64,7 @@
 #'    If filterOutput == FALSE, returns \code{x} appended with an 
 #'    "mps" column which reports the avg distance per second 
 #'    individuals moved to get from observation i-1 to observation i.
+#' @import foreach
 #' @export
 #' @examples
 #' data(calves) #load calves data
@@ -79,8 +77,12 @@
 #'    dateTime = calves.dateTime$dateTime, mpsThreshold = 10, lonlat = FALSE, parallel = FALSE, 
 #'    filterOutput = TRUE) 
 #'
-mps <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, mpsThreshold = 10, lonlat = FALSE, parallel = FALSE, nCores = parallel::detectCores(), filterOutput = TRUE){
+mps <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, mpsThreshold = 10, lonlat = FALSE, parallel = FALSE, nCores = (parallel::detectCores()/2), filterOutput = TRUE){
 
+  #bind the following variables to the global environment so that the CRAN check doesn't flag them as potential problems
+  l <- NULL
+  
+  #write the sub-functions
   filter3.func<-function(x, id, point.x, point.y, dateTime, mpsThreshold, lonlat, parallel, filterOutput, nCores){
     idVec <- NULL
     xVec <- NULL
@@ -177,7 +179,7 @@ mps <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, m
     indivDist <- function(x, y, dist.measurement){
       xytab = y[which(y$idVec1 == x[1]),]
       if(nrow(xytab) > 1){
-        distCoordinates = data.frame(xytab$xVec1[1:(nrow(xytab) - 1)], xytab$yVec1[1:(nrow(xytab) - 1)], xytab$xVec1[2:nrow(xytab)], xytab$yVec1[2:nrow(xytab)])
+        distCoordinates = data.frame(xytab$xVec1[1:(nrow(xytab) - 1)], xytab$yVec1[1:(nrow(xytab) - 1)], xytab$xVec1[2:nrow(xytab)], xytab$yVec1[2:nrow(xytab)], stringsAsFactors = TRUE)
         dist = apply(distCoordinates,1,euc, dist.measurement)
         dist1 = c(NA, dist)
       }else{#if nrow(xytab) == 0 or 1.
@@ -187,11 +189,11 @@ mps <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, m
     }
     dist.measurement = lonlat
     rownames(x) <-seq(1,nrow(x),1) #This renames the rownames because they may no longer be sequential following the confinementFilter
-    indivSeqFrame=data.frame(unique(x$idVec1)) #The list of individual IDs.
+    indivSeqFrame=data.frame(unique(x$idVec1), stringsAsFactors = TRUE) #The list of individual IDs.
     if(parallel == TRUE){
       cl<-parallel::makeCluster(nCores)
+      on.exit(parallel::stopCluster(cl))
       distance = parallel::parApply(cl,indivSeqFrame,1,indivDist, y = x, dist.measurement) #This calculates the new distance between adjusted xy coordinates. Reported distances are distances an individual at a given point travelled to reach it from the subsequent point.
-      parallel::stopCluster(cl)
     }else{
       distance = apply(indivSeqFrame,1,indivDist, y = x, dist.measurement) #This calculates the new distance between adjusted xy coordinates. Reported distances are distances an individual at a given point travelled to reach it from the subsequent point.
     }
@@ -225,14 +227,8 @@ mps <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, m
     x <- x[,-match("dateTimeVec1",names(x))]
     return(x)
   }
-  list.breaker<-function(x,y,id, point.x, point.y, dateTime, mpsThreshold, lonlat, parallel, filterOutput, nCores){
-    input<- data.frame(y[unname(unlist(x[1]))])
-    mps.filter<-filter3.func(input, id, point.x, point.y, dateTime, mpsThreshold, lonlat, parallel, filterOutput, nCores)
-    return(mps.filter)
-  }
   if(is.data.frame(x) == FALSE & is.list(x) == TRUE){ #02/02/2019 added the "is.data.frame(x) == FALSE" argument because R apparently treats dataframes as lists.
-    breakFrame<- data.frame(seq(1,length(x),1))
-    list.mps <- apply(breakFrame, 1, list.breaker,y = x,id, point.x, point.y, dateTime, mpsThreshold, lonlat, parallel, filterOutput, nCores) #in the vast majority of cases, parallelizing the subfunctions will result in faster processing than parallelizing the list processing here. As such, since parallelizing this list processing could cause numerous problems due to parallelized subfunctions, this is an apply rather than a parApply or lapply.
+    list.mps <- foreach::foreach(l = seq(from = 1, to = length(x), by = 1)) %do% filter3.func(x[[l]], id, point.x, point.y, dateTime, mpsThreshold, lonlat, parallel, filterOutput, nCores) #in the vast majority of cases, parallelizing the subfunctions will result in faster processing than parallelizing the list processing here.
     return(list.mps)
   }else{ #if x is a dataFrame
     frame.mps<- filter3.func(x, id, point.x, point.y, dateTime, mpsThreshold, lonlat, parallel, filterOutput, nCores)

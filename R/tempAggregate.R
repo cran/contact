@@ -56,13 +56,10 @@
 #'    exist over any secondAgg time block, NAs will be produced for the time 
 #'    blocks of interest. Defaults to "full."
 #' @param parallel Logical. If TRUE, sub-functions within the tempAggregate 
-#'    wrapper will be parallelized. Note that this can significantly speed up 
-#'    processing of relatively small data sets, but may cause R to crash due 
-#'    to lack of available memory when attempting to process large datasets. 
-#'    Defaults to FALSE.
+#'    wrapper will be parallelized. Defaults to FALSE.
 #' @param nCores Integer. Describes the number of cores to be dedicated to 
-#'    parallel processes. Defaults to the maximum number of cores available
-#'    (i.e., parallel::detectCores()).
+#'    parallel processes. Defaults to half of the maximum number of cores 
+#'    available (i.e., (parallel::detectCores()/2)).
 #' @param na.rm Logical. If TRUE, all unknown locations (i.e., xy-coordinate 
 #'    pairs reported as NAs) will be removed from the output. Defaults to TRUE.
 #'    Note that if na.rm == FALSE, all aggregated location fixes will be 
@@ -83,7 +80,8 @@
 #'    \item{x}{Smoothed x coordinates.}
 #'    \item{y}{Smoothed y coordinates.}
 #'    \item{dateTime}{Timepoint at which smoothed points were observed.}
-#'    
+#'
+#' @import foreach        
 #' @export
 #' @examples
 #' data("calves")
@@ -99,11 +97,15 @@
 #'    na.rm = TRUE, smooth.type = 1) #smooth to 5-min fix intervals.
 #'    
 
-tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, secondAgg = 10, extrapolate.left = FALSE, extrapolate.right = FALSE, resolutionLevel = "full", parallel = FALSE, nCores = parallel::detectCores(), na.rm = TRUE, smooth.type = 1) { #removed totalSecond = NULL argument on 01102019
+tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, secondAgg = 10, extrapolate.left = FALSE, extrapolate.right = FALSE, resolutionLevel = "full", parallel = FALSE, nCores = (parallel::detectCores()/2), na.rm = TRUE, smooth.type = 1) { #removed totalSecond = NULL argument on 01102019
 
+  #bind the following variables to the global environment so that the CRAN check doesn't flag them as potential problems
+  l <- NULL
+  
+  #write sub-function
   Agg.generator<-function(x, id, point.x, point.y, dateTime, secondAgg, extrapolate.left, extrapolate.right, resolutionLevel, parallel, na.rm, smooth.type, nCores){
     if(length(x) == 0){ #This if statement allows users to input either a series of vectors (id, dateTime, point.x and point.y), a dataframe with columns named the same, or a combination of dataframe and vectors. No matter the input format, a table called "originTab" will be created.
-      originTab = data.frame(id = id, x = point.x, y = point.y, dateTime = dateTime)
+      originTab = data.frame(id = id, x = point.x, y = point.y, dateTime = dateTime, stringsAsFactors = TRUE)
     }
 
     if(length(x) > 0){ #for some reason using an "else" statement would always result in an originTab table with 0 records...
@@ -130,7 +132,7 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
           x$y = point.y
         }
       }
-      xyFrame1<- data.frame(x = x$x, y = x$y)
+      xyFrame1<- data.frame(x = x$x, y = x$y, stringsAsFactors = TRUE)
 
       if(length(dateTime) > 0){
 
@@ -156,7 +158,7 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
     dayIDVec = NULL
     dayIDseq = seq(1,(length(dates)),1)
     for(b in dayIDseq){
-      dayID = rep(b,length(which(originTab$date == dates[which(dayIDseq == b)])))
+      dayID = rep(b,length(which(originTab$date == dates[b])))
       dayIDVec = c(dayIDVec, dayID)
     }
 
@@ -275,7 +277,7 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
     locmatrix <- NULL
     start.brk <- NULL
     locTable <- NULL
-    dateSeq <- unique(originTab$date)
+    dateSeq <- dates #just rename for the same of convenience
     indivSeq <- unique(originTab$id)
 
     for(i in indivSeq){ #This loop determines the rows in the dataset where each individual's path begins.
@@ -288,8 +290,8 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
 
     if (parallel == TRUE){
       cl<-parallel::makeCluster(nCores)
+      on.exit(parallel::stopCluster(cl))
       locmatrix<-parallel::parApply(cl, brk.point, 1, Processing_and_Aggregation_Procedures, originTab, leftExtrap, rightExtrap, resolutionLevel, smooth.type, secondAgg) ##Note, this procedure produces a table that in which the first half is the x axis, and the second is the y axis. You have to merge (see code below)
-      parallel::stopCluster(cl)
     }else{locmatrix<-apply(brk.point, 1, Processing_and_Aggregation_Procedures, originTab, leftExtrap, rightExtrap, resolutionLevel, smooth.type, secondAgg)}
 
     #The code below breaks the table into the x and y coordinates that we'd expect here.
@@ -301,11 +303,11 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
       datesAgg = NULL
 
       for(n in 1:length(dateSeq)){
-        date = data.frame(date = rep(dateSeq[n],(nrow(locmatrix)/2)/length(dateSeq)))
-        datesAgg = data.frame(data.table::rbindlist(list(datesAgg,date)))
+        date = data.frame(date = rep(dateSeq[n],(nrow(locmatrix)/2)/length(dateSeq)), stringsAsFactors = TRUE)
+        datesAgg = data.frame(data.table::rbindlist(list(datesAgg,date)), stringsAsFactors = TRUE)
 
       }
-      tempTable = data.frame(id = id1, x = xvec, y = yvec, date = datesAgg)
+      tempTable = data.frame(id = id1, x = xvec, y = yvec, date = datesAgg, stringsAsFactors = TRUE)
       tempTable1 = NULL
 
       for(o in 1:length(dateSeq)){
@@ -332,9 +334,9 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
         datesub$minute = M
         datesub$second = S
 
-        tempTable1 = data.frame(data.table::rbindlist(list(tempTable1,datesub)))
+        tempTable1 = data.frame(data.table::rbindlist(list(tempTable1,datesub)), stringsAsFactors = TRUE)
       }
-      locTable = data.frame(data.table::rbindlist(list(locTable,tempTable1)))
+      locTable = data.frame(data.table::rbindlist(list(locTable,tempTable1)), stringsAsFactors = TRUE)
     }
 
     locTable <- locTable[,-match("UID",names(datesub))] #removes the UID column to save space
@@ -381,15 +383,9 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
 
     return(locTable)
   }
-  list.breaker<-function(x,y,id, point.x, point.y, dateTime, secondAgg, extrapolate.left, extrapolate.right, resolutionLevel, parallel, na.rm, smooth.type, nCores){
-    input<- data.frame(y[unname(unlist(x[1]))])
-    tempAgg<-Agg.generator(input, id, point.x, point.y, dateTime, secondAgg, extrapolate.left, extrapolate.right, resolutionLevel, parallel, na.rm, smooth.type, nCores)
-    return(tempAgg)
-  }
 
-  if(is.data.frame(x) == FALSE & is.list(x) == TRUE){ #02/02/2019 added the "is.data.frame(x) == FALSE" argument because R apparently treats dataframes as lists.
-    breakFrame<- data.frame(seq(1,length(x),1))
-    list.Agg <- apply(breakFrame, 1, list.breaker,y = x,id, point.x, point.y, dateTime, secondAgg, extrapolate.left, extrapolate.right, resolutionLevel, parallel, na.rm, smooth.type, nCores) #in the vast majority of cases, parallelizing the subfunctions will result in faster processing than parallelizing the list processing here. As such, since parallelizing this list processing could cause numerous problems due to parallelized subfunctions, this is an apply rather than a parApply or lapply.
+  if(is.data.frame(x) == FALSE & is.list(x) == TRUE){ #02/02/2019 added the "is.data.frame(x) == FALSE" argument because R treats dataframes as lists.
+    list.Agg <- foreach::foreach(l = seq(from = 1, to = length(x), by = 1)) %do% Agg.generator(x[[l]], id, point.x, point.y, dateTime, secondAgg, extrapolate.left, extrapolate.right, resolutionLevel, parallel, na.rm, smooth.type, nCores) #in the vast majority of cases, parallelizing the subfunctions will result in faster processing than parallelizing the list processing here.
     return(list.Agg)
 
   }else{ #if x is a dataFrame

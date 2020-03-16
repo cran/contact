@@ -4,13 +4,15 @@
 \name{calves2018}
 \alias{calves2018}
 \title{Real-time location data for 20 calves in June 2018}
-\format{A data frame with 193551 rows and 4 variables:
+\format{
+A data frame with 193551 rows and 4 variables:
 \describe{
   \item{calftag}{a unique identifier for each calf}
   \item{x}{planar x coordinate}
   \item{y}{planar y coordinate}
   \item{dateTime}{UTC date and time at which location fix was obtained}
-}}
+}
+}
 \usage{
 data(calves2018)
 }
@@ -36,7 +38,7 @@ head(calves2018)
 }
 \references{
 Farthing, T.S., Dawson, D.E., Sanderson, M.W., and Lanzas, 
-   C. in Review. Accounting for space and uncertainty in real-time-location-
+   C. in Press. Accounting for space and uncertainty in real-time-location-
    system-derived contact networks. Ecology and Evolution.
 }
 \keyword{calves}

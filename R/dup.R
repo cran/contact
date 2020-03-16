@@ -38,15 +38,14 @@
 #' @param avg Logical. If TRUE, point.x and point.y values for duplicated 
 #'    time steps will be averaged, producing a singular point for all time 
 #'    steps in individuals' movement paths. If FALSE, all duplicated time 
-#'    steps are removed from the data set. 
+#'    steps wherein individuals were observed in different locations 
+#'    concurrently are removed from the data set. 
 #' @param parallel Logical. If TRUE, sub-functions within the dup wrapper will 
-#'    be parallelized. Note that this can significantly speed up processing of 
-#'    relatively small data sets, but may cause R to crash due to lack of 
-#'    available memory when attempting to process large datasets. Defaults to 
+#'    be parallelized. This is only relevant if avg == TRUE. Defaults to 
 #'    FALSE.
 #' @param nCores Integer. Describes the number of cores to be dedicated to 
 #'    parallel processes. Defaults to the maximum number of cores available
-#'    (i.e., parallel::detectCores()).
+#'    (i.e., (parallel::detectCores()/2)).
 #' @param filterOutput Logical. If TRUE, output will be a data frame 
 #'    containing only movement paths with non-duplicated timesteps. If FALSE, 
 #'    no observations are removed and a "duplicated" column is appended to x, 
@@ -59,6 +58,7 @@
 #'    If filterOutput == FALSE, returns \code{x} appended with a 
 #'    "duplicated" column which reports timepoints are duplicated (column 
 #'    value == 1), or not (column value == 0).
+#' @import foreach  
 #' @export
 #' @examples
 #' 
@@ -69,7 +69,12 @@
 #'    dateTime = calves2018$dateTime, avg = FALSE, parallel = FALSE, 
 #'    filterOutput = TRUE) #there were no duplicates to remove in the first place.
 
-dup <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, avg = TRUE, parallel = FALSE, nCores = parallel::detectCores(), filterOutput = TRUE){
+dup <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, avg = TRUE, parallel = FALSE, nCores = (parallel::detectCores()/2), filterOutput = TRUE){
+
+  #bind the following variables to the global environment so that the CRAN check doesn't flag them as potential problems
+  l <- NULL
+    
+  #write the sub-functions
   filter1.func<-function(x, id, point.x, point.y, dateTime, avg, parallel, filterOutput, nCores){
 
     idVec <- NULL
@@ -146,50 +151,60 @@ dup <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, a
 
     rownames(x) <-seq(1,nrow(x),1)
     x$indiv_dateTimes = paste(x$idVec1, x$dateTimeVec1, sep = " ")
-    originTab = x
     a=duplicated(x$indiv_dateTimes)
     duplicates = which(a == TRUE)
 
     if(length(duplicates) > 0){ #This if statement prevents an error from occurring due to the lack of duplicated timepoints
-      dupFrame = data.frame(unique(x$indiv_dateTimes[duplicates]))
-      dupFixer1<-function(x,y){
-        removeVec = which(y$indiv_dateTimes == x[1])
-        return(removeVec)
+      
+      fullVector <- paste(x$idVec1, x$dateTimeVec1, xVec1, yVec1, sep = " ") #create a vector of all inputs
+      exactDuplicates <- which(duplicated(fullVector) == TRUE) #identify which rows represent complete duplicates (i.e., all inputs are duplicated). 
+
+      if(length(exactDuplicates) > 0){ #if there are exact duplicates, they will simply be removed later on. There's no need to calculate the average (if avg == TRUE).
+        exactDup.values <- droplevels(x[exactDuplicates,]) #pull a data frame of exactDuplicates (will only be relevant if filter.output == FALSE)
+        x <- droplevels(x[-exactDuplicates,]) #remove exact duplicates from x
+        duplicates.adjusted<- which(duplicated(x$indiv_dateTimes) == TRUE) #re-evaluate duplicates
+      }else{
+        duplicates.adjusted<- duplicates #if there were no exact duplicates, then this vector need not change
       }
+      
+      if(length(duplicates.adjusted) > 0){
+      
+        dupRemove <- unique(c((duplicates.adjusted - 1), duplicates.adjusted)) #compiles a vector of rows that are duplicated
 
-      dupFixer2<-function(x,y){
-        oldX = y$xVec1[which(y$indiv_dateTimes == x[1])]
-        oldY = y$yVec1[which(y$indiv_dateTimes == x[1])]
-        newX = (sum(oldX)/length(oldX)) #calculates the average x location and adds it to the replacement row
-        newY = (sum(oldY)/length(oldY)) #calculates the average y location and adds it to the replacement row
-        newCoord = c(newX,newY)
-        return(newCoord)
-      }
+        if(filterOutput == TRUE){
 
-      if(filterOutput == TRUE){
+          if(avg == TRUE){ 
+          
+            dupFixer2<-function(x,y){
+              oldX = y$xVec1[which(y$indiv_dateTimes == x[1])]
+              oldY = y$yVec1[which(y$indiv_dateTimes == x[1])]
+              newX = (sum(oldX)/length(oldX)) #calculates the average x location and adds it to the replacement row
+              newY = (sum(oldY)/length(oldY)) #calculates the average y location and adds it to the replacement row
+              newCoord = c(newX,newY)
+              return(newCoord)
+            }
+          
+            dupFrame = data.frame(unique(x$indiv_dateTimes[duplicates.adjusted]), stringsAsFactors = TRUE)
+            originTab = x
+          
+            if(parallel == TRUE){
+              cl<-parallel::makeCluster(nCores)
+              on.exit(parallel::stopCluster(cl))
+              dupReplace = unlist(parallel::parApply(cl,dupFrame,1,dupFixer2, originTab))
+            }else{ #if parallel == FALSE
+              dupReplace = unlist(apply(dupFrame,1,dupFixer2, originTab))
+            }
 
-        if(parallel == TRUE){
-          cl<-parallel::makeCluster(nCores)
-          dupRemove = unlist(parallel::parApply(cl,dupFrame,1,dupFixer1, originTab))
-          if(avg == TRUE){
-            dupReplace = unlist(parallel::parApply(cl,dupFrame,1,dupFixer2, originTab))
+            replaceTab = x[duplicates.adjusted,] #This creates a dataframe with all the relevant data included (e.g., id, dateTime,etc.). We just need to adjust the x and y coordinates in the table.
+            newXYMat = matrix(dupReplace, nrow = (nrow(replaceTab)), ncol = 2, byrow = TRUE)
+            replaceTab$xVec1 = newXYMat[,1]
+            replaceTab$yVec1 = newXYMat[,2]
           }
-          parallel::stopCluster(cl)
-        }else{ #if parallel == FALSE
-          dupRemove = unlist(apply(dupFrame,1,dupFixer1, originTab)) #This calculates the new distance between adjusted xy coordinates. Reported distances are distances an individual at a given point travelled to reach it from the subsequent point.
-          if(avg == TRUE){
-            dupReplace = unlist(apply(dupFrame,1,dupFixer2, originTab))
-          }
-        }
+        
+          x <- droplevels(x[-dupRemove,]) 
+        
         if(avg == TRUE){
-          replaceTab = x[duplicates,] #This creates a dataframe with all the relevant data included (e.g., id, dateTime,etc.). We just need to adjust the x and y coordinates in the table.
-          newXYMat = matrix(dupReplace, nrow = (nrow(replaceTab)), ncol = 2, byrow = TRUE)
-          replaceTab$xVec1 = newXYMat[,1]
-          replaceTab$yVec1 = newXYMat[,2]
-        }
-        x = x[-dupRemove,]
-        if(avg == TRUE){
-          x = data.frame(data.table::rbindlist(list(x,replaceTab)))
+          x = data.frame(data.table::rbindlist(list(x,replaceTab)), stringsAsFactors = TRUE)
 
           if(length(colname.x) > 0){ #colname.x and colname.y are the modified columns, yet these columns are artifacts of this function that will ultimately be removed. This step ensures that the relevant permanent columns are modified as well.
             x[,match(colname.x,names(x))] <- x$xVec1
@@ -205,22 +220,30 @@ dup <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, a
 
       }else{ #i.e., if filterOutput == FALSE
 
-        if(parallel == TRUE){
-          cl<-parallel::makeCluster(nCores)
-          dupRemove = unlist(parallel::parApply(cl,dupFrame,1,dupFixer1, originTab)) #This calculates the new distance between adjusted xy coordinates. Reported distances are distances an individual at a given point travelled to reach it from the subsequent point.
-          parallel::stopCluster(cl)
-        }else{
-          dupRemove = unlist(apply(dupFrame,1,dupFixer1, originTab)) #This calculates the new distance between adjusted xy coordinates. Reported distances are distances an individual at a given point travelled to reach it from the subsequent point.
-        }
         x$duplicated = 0
         x$duplicated[dupRemove] = 1
+        if(length(exactDuplicates) > 0){ #if there were exact duplicates, then they are indicated as well.
+          exactDup.values$duplicated <- 1
+          x <- data.frame(data.table::rbindlist(list(x, exactDup.values)), stringsAsFactors = TRUE) #bind x and exactDup.values
+          x<-x[order(idVec1, dateTimeVec1),] #this sorts the data, putting duplicates back into place
+          x$duplicated[exactDuplicates -1] <- 1
+        }
       }
-
-      if(nrow(x) > 0){
-        rownames(x) <-seq(1,nrow(x),1)
+      }else{ #if duplicates.adjusted == 0
+        if(filterOutput == FALSE){ #in this case ALL duplicates were exact duplicates
+          x$duplicated = 0
+          exactDup.values$duplicated <- 1
+          x <- data.frame(data.table::rbindlist(list(x, exactDup.values)), stringsAsFactors = TRUE) #bind x and exactDup.values
+          x<-x[order(idVec1, dateTimeVec1),] #this sorts the data, putting duplicates back into place
+          x$duplicated[exactDuplicates -1] <- 1
+        }
       }
     }
 
+    if(nrow(x) > 0){
+      rownames(x) <-seq(1,nrow(x),1)
+    }
+    
     x <- x[,-match("indiv_dateTimes",names(x))]
     x <- x[,-match("idVec1",names(x))]
     x <- x[,-match("dateTimeVec1",names(x))]
@@ -229,16 +252,11 @@ dup <- function(x, id = NULL, point.x = NULL, point.y = NULL, dateTime = NULL, a
 
     return(x)
   }
-  list.breaker<-function(x,y,id, point.x, point.y, dateTime, avg, parallel, filterOutput, nCores){
-    input<- data.frame(y[unname(unlist(x[1]))])
-    dup.filter<-filter1.func(input, id, point.x, point.y, dateTime, avg, parallel, filterOutput, nCores)
-    return(dup.filter)
-  }
 
   if(is.data.frame(x) == FALSE & is.list(x) == TRUE){ #02/02/2019 added the "is.data.frame(x) == FALSE" argument because R apparently treats dataframes as lists.
-    breakFrame<- data.frame(seq(1,length(x),1))
-    list.dup <- apply(breakFrame, 1, list.breaker,y = x, id, point.x, point.y, dateTime, avg, parallel, filterOutput, nCores) #in the vast majority of cases, parallelizing the subfunctions will result in faster processing than parallelizing the list processing here. As such, since parallelizing this list processing could cause numerous problems due to parallelized subfunctions, this is an apply rather than a parApply or lapply.
-
+    
+    list.dup <- foreach::foreach(l = seq(from = 1, to = length(x), by = 1)) %do% filter1.func(x[[l]], id, point.x, point.y, dateTime, avg, parallel, filterOutput, nCores) #in the vast majority of cases, parallelizing the subfunctions will result in faster processing than parallelizing the list processing here.
+    
     return(list.dup)
 
   }else{ #if x is a dataFrame

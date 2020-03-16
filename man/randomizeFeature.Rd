@@ -4,8 +4,13 @@
 \alias{randomizeFeature}
 \title{Randomize or Pseudorandomize Categorical Variables}
 \usage{
-randomizeFeature(x, feature = NULL, shuffle = FALSE,
-  maintainDistr = TRUE, numRandomizations = 10)
+randomizeFeature(
+  x,
+  feature = NULL,
+  shuffle = FALSE,
+  maintainDistr = TRUE,
+  numRandomizations = 10
+)
 }
 \arguments{
 \item{x}{Data frame containing real-time-location data.}
@@ -53,7 +58,7 @@ system.time(randomizedValues<-contact::randomizeFeature(x = calves,
    feature = c("calftag", "date"), shuffle = TRUE, maintainDistr = TRUE, 
    numRandomizations = 3)) 
    
-randomizedFrame<-data.frame(randomizedValues[[1]])
+randomizedFrame<-data.frame(randomizedValues[[1]], stringsAsFactors = TRUE)
 
 head(randomizedFrame) #see that randomized-value columns have been appended.
 }

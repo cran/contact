@@ -16,8 +16,8 @@
 #'    column with the colname "dateTime" exists in x. Defaults to NULL.
 #' @param blockUnit Character string taking the values, "secs," "mins," 
 #'    "hours," "days," or "weeks." Defaults to "hours."
-#' @param blockLength Numerical. Describes the number blockUnits within each 
-#'    temporal block. Defaults to 10.
+#' @param blockLength Integer. Describes the number blockUnits within each 
+#'    temporal block. Defaults to 1.
 #' @keywords data-processing sub-function
 #' @return Appends the following columns to \code{x}.
 #'    
@@ -39,21 +39,7 @@
 #'     blockUnit = "mins")
 #' head(calves.block) #see that block information has been appended.
 
-timeBlock.append<-function(x = NULL, dateTime = NULL, blockLength = 10, blockUnit = "mins"){
-  datetime.append1 = function(x){
-    timevec = x$dateTime
-    daySecondList = lubridate::hour(timevec) * 3600 + lubridate::minute(timevec) * 60 + lubridate::second(timevec) #This calculates a day-second
-    lub.dates = lubridate::date(x$dateTime)
-    dateseq = unique(lub.dates)
-    dayIDList = NULL
-    dayIDseq = seq(1,(length(dateseq)),1)
-    for(b in dayIDseq){
-      ID = rep(b,length(which(lub.dates == dateseq[which(dayIDseq == b)])))
-      dayIDList = c(dayIDList, ID)
-    } 
-    x$totalSecond = ((dayIDList - min(dayIDList))*86400) + daySecondList #This calculates the total second (the cumulative second across the span of the study's timeframe)
-    return(x)
-  }
+timeBlock.append<-function(x = NULL, dateTime = NULL, blockLength = 1, blockUnit = "hours"){
   
   if(blockUnit == "Secs" || blockUnit == "SECS" || blockUnit == "secs"){
     blockLength1 <- blockLength
@@ -72,7 +58,7 @@ timeBlock.append<-function(x = NULL, dateTime = NULL, blockLength = 10, blockUni
   }
   
   if(length(x) == 0){ #if there is no x input (i.e., x == NULL), #assumes that if x == NULL, dateTime does not.
-    x<- data.frame(dateTime = dateTime)
+    x<- data.frame(dateTime = dateTime, stringsAsFactors = TRUE)
   }else{ # length(x) > 0
     if(length(dateTime) > 0){ #dateTime == NULL, the function assumes that there is a "dateTime" column in x.
       if(length(dateTime) == 1 && is.na(match(dateTime[1], names(x))) == FALSE){ #added 1/14 to accompany the list-processing functionality. If x is a list, rather than point.x being a vector of length(nrow(x)), it may be necessary to designate the colname for intended "point.x" values (i.e., if the x-coordinate values in different list entries are different)
@@ -82,10 +68,20 @@ timeBlock.append<-function(x = NULL, dateTime = NULL, blockLength = 10, blockUni
       }
     }
   }
-  x<-x[order(x$dateTime),] #Just in case the data wasn't already ordered in this way.
-  x<-datetime.append1(x) #adds the total second column to the dataframe
-  studySecond <- (x$totalSecond -min(x$totalSecond)) + 1
-  x<-x[,-match("totalSecond", names(x))]
+
+  daySecondList = lubridate::hour(x$dateTime) * 3600 + lubridate::minute(x$dateTime) * 60 + lubridate::second(x$dateTime) #This calculates a day-second
+  lub.dates = lubridate::date(x$dateTime)
+  x<-x[order(lub.dates, daySecondList),] #in case this wasn't already done, we order by date and second. Note that we must order it in this round-about way (using the date and daySecond vectors) to prevent ordering errors that sometimes occurs with dateTime data
+  rm(list = c("daySecondList", "lub.dates")) #remove these objects because they are no longer needed.
+  
+  ##totalSecond<- difftime(x$dateTime ,x$dateTime[1] , units = c("secs")) #calculate total seconds
+  ##studySecond <- (totalSecond -min(totalSecond)) + 1
+  
+  #for some odd reason, difftime will output mostly zeroes (incorrectly) if there are > 1 correct 0 at the beginning. We use a crude fix here to address this. Basically, we create the zeroes first and combine it with other values afterwards
+  totSecond <- rep(0, length(which(x$dateTime == x$dateTime[1])))
+  totSecond2<-as.integer(difftime(x$dateTime[(length(totSecond) +1): nrow(x)] ,x$dateTime[1] , units = c("secs")))
+  studySecond <- as.integer((c(totSecond, totSecond2) -min(c(totSecond, totSecond2))) + 1)
+  
   numblocks <- ceiling((max(studySecond) - 1)/blockLength1)
   block <-rep(0,length(studySecond))
   for(g in 1:(numblocks -1)){ #numblocks - 1 because the last block in the dataset may be smaller than previous blocks (if blockLength1 does not divide evenly into timedif)
@@ -94,19 +90,14 @@ timeBlock.append<-function(x = NULL, dateTime = NULL, blockLength = 10, blockUni
   if(length(which(block == 0)) > 0){ #identifies the last block
     block[which(block == 0)] = numblocks
   }
-  blockVec<-unique(block)
-  dateTimeVec2<-x$dateTime #dateTime after x is sorted
-  minBlockTimeSeq <- rep(0, length(block)) #Added 2/4/2019. This vector will identify the minimum timepoint in each block.
-  maxBlockTimeSeq <- rep(0, length(block)) #Added 2/4/2019. This vector will identify the maximum timepoint in each block.
-  for(f in 1:length(blockVec)){
-    minBlockTime<-as.character(dateTimeVec2[min(which(block == blockVec[f]))])
-    minBlockTimeSeq[which(block == blockVec[f])] <- minBlockTime
-    maxBlockTime<-as.character(dateTimeVec2[max(which(block == blockVec[f]))])
-    maxBlockTimeSeq[which(block == blockVec[f])] <- maxBlockTime
-  }
+
+  block.start<-as.character(as.POSIXct(x$dateTime[1]) + ((block - 1)*blockLength1)) #identify the timepoint where each block starts (down to the second resolution)
+  block.end<-as.character(as.POSIXct(x$dateTime[1]) + ((block - 1)*blockLength1) + (blockLength1 -1)) #identify the timepoint where each block ends (down to the second resolution)
+  
   x$block <- block
-  x$block.start <- minBlockTimeSeq
-  x$block.end <- maxBlockTimeSeq
-  x$numBlocks <- max(blockVec) #the contactTest function will require thus information (i.e. the number of blocks in the dataset)
+  x$block.start <- block.start
+  x$block.end <- block.end
+  x$numBlocks <- max(block) #the contactTest function will require this information (i.e. the number of blocks in the dataset)
+  
   return(x)
 }

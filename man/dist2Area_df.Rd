@@ -4,10 +4,21 @@
 \alias{dist2Area_df}
 \title{Calculate Distances Between Individuals and Fixed Points/Polygons}
 \usage{
-dist2Area_df(x = NULL, y = NULL, x.id = NULL, y.id = NULL,
-  dateTime = NULL, point.x = NULL, point.y = NULL, poly.xy = NULL,
-  parallel = FALSE, nCores = parallel::detectCores(),
-  dataType = "Point", lonlat = FALSE, numVertices = 4)
+dist2Area_df(
+  x = NULL,
+  y = NULL,
+  x.id = NULL,
+  y.id = NULL,
+  dateTime = NULL,
+  point.x = NULL,
+  point.y = NULL,
+  poly.xy = NULL,
+  parallel = FALSE,
+  nCores = (parallel::detectCores()/2),
+  dataType = "Point",
+  lonlat = FALSE,
+  numVertices = 4
+)
 }
 \arguments{
 \item{x}{Data frame or list of data frames containing real-time-location 
@@ -60,8 +71,8 @@ lack of available memory when attempting to process large datasets.
 Defaults to FALSE.}
 
 \item{nCores}{Integer. Describes the number of cores to be dedicated to 
-parallel processes. Defaults to the maximum number of cores available
-(i.e., parallel::detectCores()).}
+parallel processes. Defaults to half og the maximum number of cores 
+available (i.e., (parallel::detectCores()/2)).}
 
 \item{dataType}{Character string refering to the type of real-time-location 
 data presented in x, taking values of "Point" or "Polygon." If 
@@ -94,9 +105,9 @@ Returns a data frame (or list of data frames if \code{x} is a
    described in the \code{id} column to every each polygon/fixed location}
 }
 \description{
-Calculate distances (either planar or great circle - see dist.all) between 
-   each individual, reported in x, and a fixed point(s)/polygon(s), reported
-   in y, at each timestep.
+Calculate distances (either planar or great circle - see dist2All_df) 
+   between each individual, reported in x, and a fixed point(s)/polygon(s), 
+   reported in y, at each timestep.
 }
 \details{
 Polygon coordinates (in both x and y inputs) must be arranged in the format 
