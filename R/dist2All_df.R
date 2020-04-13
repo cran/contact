@@ -96,7 +96,7 @@
 #'    extrapolate.right = FALSE, resolutionLevel = "reduced", parallel = FALSE,
 #'    na.rm = TRUE, smooth.type = 1) #smooth locations to 5-min fix intervals.
 #' 
-#' calves.dist<-dist2All_df(x = calves.agg, parallel = FALSE, dataType = "Point",
+#' calves.dist2<-dist2All_df(x = calves.agg, parallel = FALSE, dataType = "Point",
 #'    lonlat = FALSE) #calculate distance between all individuals at each timepoint.
 #' 
 
@@ -150,7 +150,13 @@ dist2All_df<-function(x = NULL, id = NULL, dateTime = NULL, point.x = NULL, poin
 
         if(dataType == "point" || dataType == "Point" || dataType == "POINT"){
           
-          x<-x[order(x$id, x$dateTime),]
+          #in case this wasn't already done, we order by date and second. Note that we must order it in this round-about way (using the date and daySecond vectors) to prevent ordering errors that sometimes occurs with dateTime data. It takes a bit longer (especially with larger data sets), but that's the price of accuracy
+          daySecondList = lubridate::hour(x$dateTime) * 3600 + lubridate::minute(x$dateTime) * 60 + lubridate::second(x$dateTime) #This calculates a day-second
+          lub.dates = lubridate::date(x$dateTime)
+          x<-x[order(x$id, lub.dates, daySecondList),] #order x 
+          
+          rm(list = c("daySecondList", "lub.dates")) #remove these objects because they are no longer needed.
+          
           indivSeq = unique(x$integ.ID)
           idSeq = unique(x$id)
           dist.measurement = lonlat
@@ -187,7 +193,13 @@ dist2All_df<-function(x = NULL, id = NULL, dateTime = NULL, point.x = NULL, poin
         
         if(dataType == "polygon" || dataType == "Polygon" || dataType == "POLYGON"){
           
-          x<-x[order(x$id, x$dateTime),]
+          #in case this wasn't already done, we order by date and second. Note that we must order it in this round-about way (using the date and daySecond vectors) to prevent ordering errors that sometimes occurs with dateTime data. It takes a bit longer (especially with larger data sets), but that's the price of accuracy
+          daySecondList = lubridate::hour(x$dateTime) * 3600 + lubridate::minute(x$dateTime) * 60 + lubridate::second(x$dateTime) #This calculates a day-second
+          lub.dates = lubridate::date(x$dateTime)
+          x<-x[order(x$id, lub.dates, daySecondList),] #order x 
+          
+          rm(list = c("daySecondList", "lub.dates")) #remove these objects because they are no longer needed.
+          
           naVec<-which(is.na(x[,match("point2.x", names(x))]) == TRUE) #the referencePointtoPolygon function will create some observations that are not complete polygons (i.e., only the point1 coordinates are recorded). This identifies those observations, so that they may be removed. If they are not removed, they will cause errors later.
           if(length(naVec) > 0){
             x <- x[-naVec,]
@@ -358,6 +370,13 @@ dist2All_df<-function(x = NULL, id = NULL, dateTime = NULL, point.x = NULL, poin
       
       rm(x) #now that originTab is created, we no longer need x
       
+      #The next thing we need to do is remove any NAs in the data set 
+      if(length(unique(c(which(is.na(originTab$x) == TRUE), which(is.na(originTab$y) == TRUE)))) > 0){
+        
+        originTab <- droplevels(originTab[- unique(c(which(is.na(originTab$x) == TRUE), which(is.na(originTab$y) == TRUE))),])
+        
+      }
+      
       data.dates<-lubridate::date(originTab$dateTime) #now we can start concattenating the data by subsetting it into smaller lists
       
       originTab$date_hour <- paste(data.dates, lubridate::hour(originTab$dateTime), sep = "_") #create a tag for each unique date_hour combination in the data set
@@ -439,7 +458,13 @@ dist2All_df<-function(x = NULL, id = NULL, dateTime = NULL, point.x = NULL, poin
       
       if(dataType == "point" || dataType == "Point" || dataType == "POINT"){
         
-        x<-x[order(x$id, x$dateTime),]
+        #in case this wasn't already done, we order by date and second. Note that we must order it in this round-about way (using the date and daySecond vectors) to prevent ordering errors that sometimes occurs with dateTime data. It takes a bit longer (especially with larger data sets), but that's the price of accuracy
+        daySecondList = lubridate::hour(x$dateTime) * 3600 + lubridate::minute(x$dateTime) * 60 + lubridate::second(x$dateTime) #This calculates a day-second
+        lub.dates = lubridate::date(x$dateTime)
+        x<-x[order(x$id, lub.dates, daySecondList),] #order x 
+        
+        rm(list = c("daySecondList", "lub.dates")) #remove these objects because they are no longer needed.
+        
         indivSeq = unique(x$integ.ID)
         idSeq = unique(x$id)
         dist.measurement = lonlat
@@ -476,7 +501,13 @@ dist2All_df<-function(x = NULL, id = NULL, dateTime = NULL, point.x = NULL, poin
       
       if(dataType == "polygon" || dataType == "Polygon" || dataType == "POLYGON"){
         
-        x<-x[order(x$id, x$dateTime),]
+        #in case this wasn't already done, we order by date and second. Note that we must order it in this round-about way (using the date and daySecond vectors) to prevent ordering errors that sometimes occurs with dateTime data. It takes a bit longer (especially with larger data sets), but that's the price of accuracy
+        daySecondList = lubridate::hour(x$dateTime) * 3600 + lubridate::minute(x$dateTime) * 60 + lubridate::second(x$dateTime) #This calculates a day-second
+        lub.dates = lubridate::date(x$dateTime)
+        x<-x[order(x$id, lub.dates, daySecondList),] #order x 
+        
+        rm(list = c("daySecondList", "lub.dates")) #remove these objects because they are no longer needed.
+        
         naVec<-which(is.na(x[,match("point2.x", names(x))]) == TRUE) #the referencePointtoPolygon function will create some observations that are not complete polygons (i.e., only the point1 coordinates are recorded). This identifies those observations, so that they may be removed. If they are not removed, they will cause errors later.
         if(length(naVec) > 0){
           x <- x[-naVec,]
@@ -646,6 +677,13 @@ dist2All_df<-function(x = NULL, id = NULL, dateTime = NULL, point.x = NULL, poin
     }
     
     rm(x) #now that originTab is created, we no longer need x
+    
+    #The next thing we need to do is remove any NAs in the data set 
+    if(length(unique(c(which(is.na(originTab$x) == TRUE), which(is.na(originTab$y) == TRUE)))) > 0){
+      
+      originTab <- droplevels(originTab[- unique(c(which(is.na(originTab$x) == TRUE), which(is.na(originTab$y) == TRUE))),])
+      
+    }
     
     data.dates<-lubridate::date(originTab$dateTime) #now we can start concattenating the data by subsetting it into smaller lists
     

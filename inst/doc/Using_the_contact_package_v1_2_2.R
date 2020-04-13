@@ -11,81 +11,81 @@ knitr::opts_chunk$set(
 #load the contact package
 library(contact)
 
-## ----Section 1, echo=TRUE, warning = FALSE, eval = FALSE----------------------
-#  
-#  data("calves") #load the calves data set
-#  
+## ----Section 1, echo=TRUE, warning = FALSE, eval = TRUE-----------------------
 
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  head(calves)#The calves data set does not have a singular dateTime column. Rather, it has "date" and "time" columns. We must append a dateTime column to the data frame.
-#  
-#  system.time(calves.dateTime<- contact::datetime.append(x = calves, date = calves$date, time= calves$time, dateTime = NULL, dateFormat = "mdy", dateFake = FALSE, startYear = NULL, tz.in = "UTC", tz.out = NULL, month = FALSE, day = FALSE, year = FALSE, hour = FALSE, minute = FALSE, second = FALSE, daySecond = FALSE, totalSecond = FALSE))
-#  
+data("calves") #load the calves data set
+calves<-droplevels(calves[1:1000,]) #reduce the size to reduce processing time for this vignette.
 
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  water<- data.frame(x = c(61.43315, 61.89377, 62.37518, 61.82622), y = c(62.44815, 62.73341, 61.93864, 61.67411)) #This is a data frame containing the x and y coordinates of the four trough vertices.
-#  
 
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  water_poly<-data.frame(matrix(ncol = 8, nrow = 1)) #(ncol = number of vertices)*2
-#  colnum = 0
-#  for(h in 1:nrow(water)){
-#    water_poly[1,colnum + h] <- water$x[h] #pull the x location for each vertex
-#    water_poly[1, (colnum + 1 + h)] <- water$y[h] #pull the y location for each vertex
-#    colnum <- colnum + 1
-#  }
-#  
+## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
 
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  system.time(water_distance<-contact::dist2Area_df(x = calves.dateTime, y = water_poly, x.id = "calftag", y.id = "water", dateTime = "dateTime", point.x = calves.dateTime$x, point.y = calves.dateTime$y, poly.xy = NULL, parallel = FALSE, dataType = "Point", lonlat = FALSE, numVertices = NULL)) #note that the poly.xy and numVertices arguments refer to vertices of polygons in x, not y. Because dataType is "Point," not "Polygon," these arguments are irrelevant here.
-#  
-#  head(water_distance)
-#  
+head(calves)#The calves data set does not have a singular dateTime column. Rather, it has "date" and "time" columns. We must append a dateTime column to the data frame.
 
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  SpThValues<-contact::findDistThresh(n = 100000, acc.Dist1 = 0.5, acc.Dist2 = NULL, pWithin1 = 90, pWithin2 = NULL, spTh = 0.5) #spTh represents the initially-defined spatial threshold for contact. Note that we've chosen to use 100,000 in-contact point-location pairs here.
-#  
-#  SpThValues #it looks like an adjusted SpTh value of approximately 0.71 m will likely capture 99% of contacts, defined as instances when point-locations were within 0.333 m of the water trough, given the RTLS accuracy. #Note that because these confidence intervals are obtained from distributions generated from random samples, every time this function is run, results will be slightly different.
-#  
-#  CI_99<-unname(SpThValues[21]) #we will use this SpTh value moving forward.
-#  
+system.time(calves.dateTime<- contact::datetime.append(x = calves, date = calves$date, time= calves$time, dateTime = NULL, dateFormat = "mdy", dateFake = FALSE, startYear = NULL, tz.in = "UTC", tz.out = NULL, month = FALSE, day = FALSE, year = FALSE, hour = FALSE, minute = FALSE, second = FALSE, daySecond = FALSE, totalSecond = FALSE))
 
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  system.time(water_contacts <- contact::contactDur.area(water_distance, dist.threshold=CI_99,sec.threshold=1, blocking = FALSE, equidistant.time = FALSE, parallel = FALSE, reportParameters = TRUE)) #Note that because we are not interested in making a time-aggregated network with > 1 temporal levels, we set blocking = FALSE to reduce processing time.
-#  
-#  head(water_contacts)
-#  
 
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  system.time(water_edges<- contact::ntwrkEdges(x = water_contacts, importBlocks = FALSE, removeDuplicates = TRUE)) #get specific weighted edges
-#  
-#  head(water_edges)
-#  
+## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
 
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  water.network <- igraph::simplify(igraph::graph_from_data_frame(d=water_edges, directed=F, vertices =  c(seq(101,110), "water")),remove.multiple = T, remove.loops = T) #Note that we have to specify the nodes here because not all calves were observed in contact with the water trough.
-#  igraph::V(water.network)$color<- "orange1" #make calf nodes orange
-#  igraph::V(water.network)$color[length(igraph::V(water.network))]<- "steelblue1" #make water node blue
-#  igraph::V(water.network)$label<-NA #no need to label nodes
-#  igraph::V(water.network)$size <-13
-#  igraph::V(water.network)$shape<-c(rep("circle", (length(igraph::V(water.network)) - 1)), "square") #make the calf nodes circular and the water node square
-#  igraph::E(water.network)$width <- water_edges$duration/10 #edge width is proportional to contact frequency
-#  igraph::E(water.network)$color <- "black" #make edges black
-#  watercoords1<- igraph::layout_as_star(water.network, center = igraph::V(water.network)[length(igraph::V(water.network))]) #set the center of the star layout as the water polygon
-#  igraph::plot.igraph(water.network, layout = watercoords1)
-#  
+water<- data.frame(x = c(61.43315, 61.89377, 62.37518, 61.82622), y = c(62.44815, 62.73341, 61.93864, 61.67411)) #This is a data frame containing the x and y coordinates of the four trough vertices.
+
+
+## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
+
+water_poly<-data.frame(matrix(ncol = 8, nrow = 1)) #(ncol = number of vertices)*2
+colnum = 0
+for(h in 1:nrow(water)){
+  water_poly[1,colnum + h] <- water$x[h] #pull the x location for each vertex
+  water_poly[1, (colnum + 1 + h)] <- water$y[h] #pull the y location for each vertex
+  colnum <- colnum + 1
+}
+
+
+## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
+
+system.time(water_distance<-contact::dist2Area_df(x = calves.dateTime, y = water_poly, x.id = "calftag", y.id = "water", dateTime = "dateTime", point.x = calves.dateTime$x, point.y = calves.dateTime$y, poly.xy = NULL, parallel = FALSE, dataType = "Point", lonlat = FALSE, numVertices = NULL)) #note that the poly.xy and numVertices arguments refer to vertices of polygons in x, not y. Because dataType is "Point," not "Polygon," these arguments are irrelevant here.
+
+head(water_distance)
+
+
+## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
+
+SpThValues<-contact::findDistThresh(n = 100000, acc.Dist1 = 0.5, acc.Dist2 = NULL, pWithin1 = 90, pWithin2 = NULL, spTh = 0.5) #spTh represents the initially-defined spatial threshold for contact. Note that we've chosen to use 100,000 in-contact point-location pairs here.
+
+SpThValues #it looks like an adjusted SpTh value of approximately 0.71 m will likely capture 99% of contacts, defined as instances when point-locations were within 0.333 m of the water trough, given the RTLS accuracy. #Note that because these confidence intervals are obtained from distributions generated from random samples, every time this function is run, results will be slightly different. 
+
+CI_99<-unname(SpThValues[21]) #we will use this SpTh value moving forward.
+
+
+## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
+
+system.time(water_contacts <- contact::contactDur.area(water_distance, dist.threshold=CI_99,sec.threshold=1, blocking = FALSE, equidistant.time = FALSE, parallel = FALSE, reportParameters = TRUE)) #Note that because we are not interested in making a time-aggregated network with > 1 temporal levels, we set blocking = FALSE to reduce processing time.
+
+head(water_contacts)
+
+
+## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
+
+system.time(water_edges<- contact::ntwrkEdges(x = water_contacts, importBlocks = FALSE, removeDuplicates = TRUE)) #get specific weighted edges
+
+head(water_edges)
+
+
+## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
+
+water.network <- igraph::simplify(igraph::graph_from_data_frame(d=water_edges, directed=F, vertices =  c(seq(101,110), "water")),remove.multiple = T, remove.loops = T) #Note that we have to specify the nodes here because not all calves were observed in contact with the water trough.
+igraph::V(water.network)$color<- "orange1" #make calf nodes orange
+igraph::V(water.network)$color[length(igraph::V(water.network))]<- "steelblue1" #make water node blue
+igraph::V(water.network)$label<-NA #no need to label nodes
+igraph::V(water.network)$size <-13
+igraph::V(water.network)$shape<-c(rep("circle", (length(igraph::V(water.network)) - 1)), "square") #make the calf nodes circular and the water node square
+igraph::E(water.network)$width <- water_edges$duration/10 #edge width is proportional to contact frequency
+igraph::E(water.network)$color <- "black" #make edges black
+watercoords1<- igraph::layout_as_star(water.network, center = igraph::V(water.network)[length(igraph::V(water.network))]) #set the center of the star layout as the water polygon
+igraph::plot.igraph(water.network, layout = watercoords1)
+
 
 ## ----Section 2, echo=TRUE, warning = FALSE, eval = FALSE----------------------
 #  data("calves2018") #load the data set
-#  
 
 ## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
 #  
@@ -236,7 +236,7 @@ library(contact)
 #  
 #  igraph::V(fullBody.network)$color<- "orange1"
 #  igraph::V(fullBody.network)$size <-13
-#  igraph::E(fullBody.network)$width <- fullBody_edges$duration/100 #edge width is proportional to contact frequency
+#  igraph::E(fullBody.network)$width <- fullBody_edges$duration/50 #edge width is proportional to contact frequency
 #  igraph::E(fullBody.network)$color <- "black"
 #  igraph::plot.igraph(fullBody.network, vertex.label.cex=0.4, layout = igraph::layout.circle)
 #  
@@ -267,7 +267,7 @@ library(contact)
 
 ## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
 #  
-#  nRandomizations <- 20 #we will create 20 randomized-hour replicates.
+#  nRandomizations <- 5 #we will create 5 randomized-hour replicates.
 #  
 #  system.time(randomHourlyCalfPaths.list <- contact::randomizePaths(x = calves.10secSmoothed.na, id = calves.10secSmoothed.na$id, dateTime = calves.10secSmoothed.na$dateTime, point.x = calves.10secSmoothed.na$x, point.y = calves.10secSmoothed.na$y, poly.xy = NULL, parallel = FALSE, dataType = "Point", numVertices = 4, blocking = TRUE, blockUnit = "mins", blockLength = 10, shuffle.type = 2, shuffleUnit = "hours", indivPaths = TRUE, numRandomizations = nRandomizations))
 #  

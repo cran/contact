@@ -3,7 +3,7 @@
 #' Aggregate location data by secondAgg seconds over the course of each day 
 #'    represented in the dataset. The function smooths xy data forwards 
 #'    (smooth.type == 1) or backwards (smooth.type == 2) according to a 
-#'    data-point-averaging loess smoothing methodology. As part of the 
+#'    data-point-averaging smoothing methodology. As part of the 
 #'    smoothing process, tempAggregate fills in any missing values (either due 
 #'    to a lack of data transmission or faulty prior interpolation). We 
 #'    recognize that this procedure is not sensitive to individual presence at 
@@ -15,7 +15,7 @@
 #'    ("full" or "reduced") to process individuals' locations at different 
 #'    resolutions. If resolution == "reduced", if no locations of individuals 
 #'    exist over any secondAgg time block, NAs will be produced for the time 
-#'    blocks of interest. 
+#'    points of interest. 
 #'    
 #' This function is based on real-time-location-data-smoothing methods 
 #'    presented by Dawson et al. 2019. 
@@ -39,7 +39,7 @@
 #'    data, detailing the relevant colname in x, that denotes what dateTime 
 #'    information will be used. If argument == NULL, the function assumes a 
 #'    column with the colname "dateTime" exists in x. Defaults to NULL.
-#' @param secondAgg Numerical. The number of seconds over which 
+#' @param secondAgg Integer. The number of seconds over which 
 #'    tracked-individuals' location will be averaged. Defaults to 10.
 #' @param extrapolate.left Logical. If TRUE, individuals position at time 
 #'    points prior to their first location fix will revert to their first 
@@ -147,22 +147,19 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
       originTab <- do.call("cbind", bindlist1)
       names(originTab)[c(1,ncol(originTab))]<-c("id", "dateTime")
     }
-    originTab$date = lubridate::date(x$dateTime)
 
     ###The following lines creating the totalSecond column in originTab (derived from datetime.append) were added to version 01102019 to remove the need for including the dayID and  totalSecond columns initially, and to fix there error where the total seconds at breakpoints (n) exceeds the number of seconds in the dataset (coord.tmp) (Note: the specific error produced was "Error in coord.tmp[n, 1] : subscript out of bounds")
-    originTab<-originTab[order(originTab$dateTime),] #Just in case the data wasn't already ordered in this way.
-    timevec <- originTab$dateTime
-
-    daySecondVec = lubridate::hour(timevec) * 3600 + lubridate::minute(timevec) * 60 + lubridate::second(timevec) #This calculates a day-second
-    dates = unique(originTab$date)
-    dayIDVec = NULL
-    dayIDseq = seq(1,(length(dates)),1)
-    for(b in dayIDseq){
-      dayID = rep(b,length(which(originTab$date == dates[b])))
-      dayIDVec = c(dayIDVec, dayID)
-    }
-
-    originTab$totalSecond <- ((dayIDVec - min(dayIDVec))*86400) + daySecondVec + 1 #This calculates the total second (the cumulative second across the span of the study's timeframe) # We add the "+ 1" because lubridate::second goes from 0-59, but for our purposes, we need 1-60 b/c these these seconds will relate to rownumbers (n) later on, and cannot take a 0 value.
+    #in case this wasn't already done, we order by date and second. Note that we must order it in this round-about way (using the date and daySecond vectors) to prevent ordering errors that sometimes occurs with dateTime data. It takes a bit longer (especially with larger data sets), but that's the price of accuracy
+    
+    originTab$date <- lubridate::date(originTab$dateTime)
+    originTab$daySecond <- lubridate::hour(originTab$dateTime) * 3600 + lubridate::minute(originTab$dateTime) * 60 + lubridate::second(originTab$dateTime) #This calculates a day-second
+    originTab<-originTab[order(originTab$date, originTab$daySecond),] #Just in case the data wasn't already ordered in this way.
+    
+    dateSeq <- unique(originTab$date) #pull the unique dates, in order, to be used later on 
+    start_dateTime <- as.POSIXct(originTab$dateTime[1]) - originTab$daySecond[1] #record the first timepoint of the first day in the data to be used later on
+    
+    originTab$totalSecond <- as.integer(difftime(originTab$dateTime ,originTab$dateTime[1] , units = c("secs"))) #calculates the total second of each timepoint in x
+    
     leftExtrap = extrapolate.left
     rightExtrap = extrapolate.right
     
@@ -184,7 +181,11 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
         return(tmp.mmin)
       }
 
-      coord.tmp<-matrix(rep(0,length(unique(lubridate::date(originTab$dateTime)))*24*60*60*2),ncol=2)
+      #we need to determine how many days span the distribution of dates in the data set
+      dateSeq<- unique(originTab$date) #identify the unique days in the data
+      nDays<- as.integer(max(difftime(dateSeq, dateSeq[1], units = c("days")))) + 1 #max(difftime) returns the maximum difference between days. The +1 transforms this number to "the number of days within the timespan of the data"
+      
+      coord.tmp<-matrix(rep(0,nDays*24*60*60*2),ncol=2) #create a matrix populated by zeroes for x and y coordinates at every second within the time span
 
       data.one=originTab[c(brk.point[1]:brk.point[2]),]
       data.len=nrow(data.one)
@@ -271,13 +272,12 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
       return(loc.aggregate)
     }
 
-    originTab<-originTab[order(originTab$id, originTab$dateTime),] #This sorts the dataset by individuals' IDs and timestep
+    originTab<-originTab[order(originTab$id, originTab$date, originTab$daySecond),] #This sorts the dataset by individuals' IDs and timestep
     rownames(originTab) <-seq(1,nrow(originTab),1) #This is necessary for the brk.points to be accurate.
 
     locmatrix <- NULL
     start.brk <- NULL
     locTable <- NULL
-    dateSeq <- dates #just rename for the same of convenience
     indivSeq <- unique(originTab$id)
 
     for(i in indivSeq){ #This loop determines the rows in the dataset where each individual's path begins.
@@ -299,47 +299,13 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
       xvec<-locmatrix[1:(length(locmatrix[,1])/2),m]
       yvec<-locmatrix[((length(locmatrix[,1])/2)+1):length(locmatrix[,1]),m]
       id1 = rep(indivSeq[m],length(xvec))
-
-      datesAgg = NULL
-
-      for(n in 1:length(dateSeq)){
-        date = data.frame(date = rep(dateSeq[n],(nrow(locmatrix)/2)/length(dateSeq)), stringsAsFactors = TRUE)
-        datesAgg = data.frame(data.table::rbindlist(list(datesAgg,date)), stringsAsFactors = TRUE)
-
-      }
-      tempTable = data.frame(id = id1, x = xvec, y = yvec, date = datesAgg, stringsAsFactors = TRUE)
-      tempTable1 = NULL
-
-      for(o in 1:length(dateSeq)){
-        datesub = subset(tempTable, date == unique(tempTable$date)[o])
-        datesub$year = lubridate::year(datesub$date)
-        datesub$month = lubridate::month(datesub$date)
-        datesub$day = lubridate::day(datesub$date)
-        rownames(datesub) = seq(1,nrow(datesub),1)
-        datesub$UID = as.numeric(rownames(datesub))
-
-        H = floor((datesub$UID - 1)/(60*(60/secondAgg)))
-        M = floor((datesub$UID - 1)/(60/secondAgg)) - (H*60)
-        S = round((datesub$UID/(60/secondAgg) - floor(datesub$UID/(60/secondAgg)))*60)
-        S = c(0,S[1:(length(S) - 1)]) #I can't seem to get a zero-second starting point without this step
-        Hour = ifelse(H < 10, paste(0,H, sep = ""), H)
-        Minute = ifelse(M < 10, paste(0,M, sep = ""), M)
-        Second = ifelse(S < 10, paste(0,S, sep = ""), S)
-
-        datesub$time = paste(Hour,":", Minute, ":", Second, sep ="")
-        date.time = paste(datesub[,match("date",names(datesub))], datesub[,match("time",names(datesub))], sep = " ")
-        timevec = lubridate::ymd_hms(date.time)
-        datesub$dateTime = timevec
-        datesub$hour = H
-        datesub$minute = M
-        datesub$second = S
-
-        tempTable1 = data.frame(data.table::rbindlist(list(tempTable1,datesub)), stringsAsFactors = TRUE)
-      }
-      locTable = data.frame(data.table::rbindlist(list(locTable,tempTable1)), stringsAsFactors = TRUE)
+      
+      tempTable = data.frame(id = id1, x = xvec, y = yvec, stringsAsFactors = TRUE) #note that the date here is just the first date in the data set. below we add seconds to it to get the other date times
+      tempTable$dateTime<- start_dateTime + ((as.integer(rownames(tempTable)) - 1)*secondAgg) #define the dateTime information for the aggregated data 
+      
+      locTable = data.frame(data.table::rbindlist(list(locTable,tempTable)), stringsAsFactors = TRUE)
     }
 
-    locTable <- locTable[,-match("UID",names(datesub))] #removes the UID column to save space
 
     id.finder<-function(id, idSeq.subset, data.sub){
       if(isTRUE(id%in%idSeq.subset) == FALSE){ #This looks to see if individuals present over the course of the dataset were present in a given time frame (i.e., had at least one recorded location).
@@ -363,10 +329,13 @@ tempAggregate <- function(x = NULL, id = NULL, point.x = NULL, point.y = NULL, d
       }
     }
 
-    locTable<-locTable[order(locTable$id, locTable$dateTime),]
-    rownames(locTable)<-seq(1,nrow(locTable),1)
+    #because of all the manipulation, we'll order the data one final time. Again, we use the roundabout way to do this, to ensure accurate dateTime order
+    
+    daySecondVec2 = lubridate::hour(locTable$dateTime) * 3600 + lubridate::minute(locTable$dateTime) * 60 + lubridate::second(locTable$dateTime) #This calculates a day-second
+    lub.dates2 = lubridate::date(locTable$dateTime)
 
-    locTable <- locTable[,-c(match("date",names(locTable)), match("year",names(locTable)), match("month",names(locTable)), match("day",names(locTable)), match("time",names(locTable)), match("hour",names(locTable)), match("minute",names(locTable)), match("second",names(locTable)))] #removes all the strictly unnecessary columns to reduce file size. All these columns can be later derrived again from the dateTime column.
+    locTable<-locTable[order(locTable$id, lub.dates2, daySecondVec2),]
+    rownames(locTable)<-seq(1,nrow(locTable),1)
 
     if(length(id) == 1 && is.na(match(id[1], names(x))) == FALSE){ #if id is representative of a column name, this maintains that column name in the output file
       names(locTable)[match("id",names(locTable))] <- id

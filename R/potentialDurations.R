@@ -18,6 +18,14 @@
 #' @param blockUnit Character string taking the values: "secs," "mins," 
 #'     "hours," "days," or "weeks." Describes the temporal unit associated with
 #'     each block. Defaults to "hours."
+#' @param blockingStartTime Character string or date object describing the date
+#'     OR dateTime starting point of the first time block. For example, if 
+#'     blockingStartTime = "2016-05-01" OR "2016-05-01 00:00:00", the first 
+#'     timeblock would begin at "2016-05-01 00:00:00." If NULL, the 
+#'     blockingStartTime defaults to the minimum dateTime point in x. Note: 
+#'     any blockingStartTime MUST precede or be equivalent to the minimum 
+#'     timepoint in x. Additional note: If blockingStartTime is a character 
+#'     string, it must be in the format ymd OR ymd hms.
 #' @param distFunction Character string taking the values: "dist2All_df",
 #'     or "dist2Area_df." Describes the contact-package function used to
 #'     generate x.
@@ -65,7 +73,7 @@
 #'     
 #' calves.potentialContacts<-potentialDurations(x = calves.dist, blocking = FALSE)
 
-potentialDurations<-function(x, blocking = FALSE, blockLength = 1, blockUnit = "hours", distFunction = "dist2All_df"){ 
+potentialDurations<-function(x, blocking = FALSE, blockLength = 1, blockUnit = "hours", blockingStartTime = NULL, distFunction = "dist2All_df"){ 
   
   #bind the following variables to the global environment so that the CRAN check doesn't flag them as potential problems
   listBreak <- NULL
@@ -118,22 +126,39 @@ potentialDurations<-function(x, blocking = FALSE, blockLength = 1, blockUnit = "
     daySecondList = lub.hours * 3600 + lubridate::minute(x$dateTime) * 60 + lubridate::second(x$dateTime) #This calculates a day-second
     x<-x[order(lub.dates, daySecondList),] #in case this wasn't already done, we order by date and second. Note that we must order it in this round-about way (using the date and daySecond vectors) to prevent ordering errors that sometimes occurs with dateTime data
 
+    if(length(blockingStartTime) == 1){ #if the blockingStartTime argument is defined, we calculate how far it is away (in seconds) from the minimum timepoint in x
+      
+      blockTimeAdjustment <- difftime(x$dateTime[1], blockingStartTime, units = c("secs"))
+      
+    }else{ #if the blockingStartTime argument is NOT defined, the adjustment is 0
+      
+      blockTimeAdjustment <- 0
+      
+    }
+    
     #for some odd reason, difftime will output mostly zeroes (incorrectly) if there are > 1 correct 0 at the beginning. We use a crude fix here to address this. Basically, we create the zeroes first and combine it with other values afterwards
     totSecond <- rep(0, length(which(x$dateTime == x$dateTime[1])))
-    totSecond2<-as.integer(difftime(x$dateTime[(length(totSecond) +1): nrow(x)] ,x$dateTime[1] , units = c("secs")))
-    studySecond <- as.integer((c(totSecond, totSecond2) -min(c(totSecond, totSecond2))) + 1)
-    
-    numblocks <- ceiling((max(studySecond) - 1)/blockLength1)
-    block <-rep(0,length(studySecond))
-    for(g in 1:(numblocks -1)){ #numblocks - 1 because the last block in the dataset may be smaller than previous blocks (if blockLength1 does not divide evenly into timedif)
-      block[which(studySecond >= ((g-1)*blockLength1 + 1) & studySecond <= (g*blockLength1))] = g
+    if(nrow(x) > length(totSecond)){
+      totSecond2<-as.integer(difftime(x$dateTime[(length(totSecond) +1): nrow(x)] ,x$dateTime[1], units = c("secs")))
+    }else{
+      totSecond2 <- NULL
     }
-    if(length(which(block == 0)) > 0){ #identifies the last block
-      block[which(block == 0)] = numblocks
-    }
+    studySecond <- as.integer((c(totSecond, totSecond2) -min(c(totSecond, totSecond2))) + 1) + blockTimeAdjustment
     
-    block.start<-as.character(as.POSIXct(x$dateTime[1]) + ((block - 1)*blockLength1)) #identify the timepoint where each block starts (down to the second resolution)
-    block.end<-as.character(as.POSIXct(x$dateTime[1]) + ((block - 1)*blockLength1) + (blockLength1 -1)) #identify the timepoint where each block ends (down to the second resolution)
+    numblocks <- as.integer(ceiling(max(studySecond)/blockLength1))
+    block<- ceiling(studySecond/blockLength1)
+    
+    #numblocks <- as.integer(ceiling((max(studySecond) - 1)/blockLength1))
+    #block <-rep(0,length(studySecond))
+    #for(g in 1:(numblocks -1)){ #numblocks - 1 because the last block in the dataset may be smaller than previous blocks (if blockLength1 does not divide evenly into timedif)
+    #  block[which(studySecond >= ((g-1)*blockLength1 + 1) & studySecond <= (g*blockLength1))] = g
+    #}
+    #if(length(which(block == 0)) > 0){ #identifies the last block
+    #  block[which(block == 0)] = numblocks
+    #}
+    
+    block.start<-as.character((as.POSIXct(x$dateTime[1]) - blockTimeAdjustment) + ((block - 1)*blockLength1)) #identify the timepoint where each block starts (down to the second resolution)
+    block.end<-as.character((as.POSIXct(x$dateTime[1]) - blockTimeAdjustment) + ((block - 1)*blockLength1) + (blockLength1 -1)) #identify the timepoint where each block ends (down to the second resolution)
     
     x$block <- block
     x$block.start <- block.start
@@ -142,6 +167,9 @@ potentialDurations<-function(x, blocking = FALSE, blockLength = 1, blockUnit = "
     rm(list = c("daySecondList", "block.start","block.end", "lub.dates", "lub.hours", "numblocks", "totSecond", "totSecond2", "studySecond", "block")) #remove these objects because they are no longer needed.
     
     #now that we've assigined the block information, we can begin processing the data in earnest
+    
+    #The first thing we need to do is remove any NAs in the data set (it's unlikely)
+    
     
     idSeq<- unique(x$id)
     blockSeq <- unique(x$block)
@@ -308,12 +336,26 @@ potentialDurations<-function(x, blocking = FALSE, blockLength = 1, blockUnit = "
       daySecondList = lub.hours * 3600 + lubridate::minute(x$dateTime) * 60 + lubridate::second(x$dateTime) #This calculates a day-second
       x<-x[order(lub.dates, daySecondList),] #in case this wasn't already done, we order by date and second. Note that we must order it in this round-about way (using the date and daySecond vectors) to prevent ordering errors that sometimes occurs with dateTime data
       
+      if(length(blockingStartTime) == 1){ #if the blockingStartTime argument is defined, we calculate how far it is away (in seconds) from the minimum timepoint in x
+        
+        blockTimeAdjustment <- difftime(x$dateTime[1], blockingStartTime, units = c("secs"))
+        
+      }else{ #if the blockingStartTime argument is NOT defined, the adjustment is 0
+        
+        blockTimeAdjustment <- 0
+        
+      }
+      
       #for some odd reason, difftime will output mostly zeroes (incorrectly) if there are > 1 correct 0 at the beginning. We use a crude fix here to address this. Basically, we create the zeroes first and combine it with other values afterwards
       totSecond <- rep(0, length(which(x$dateTime == x$dateTime[1])))
-      totSecond2<-as.integer(difftime(x$dateTime[(length(totSecond) +1): nrow(x)] ,x$dateTime[1] , units = c("secs")))
-      studySecond <- as.integer((c(totSecond, totSecond2) -min(c(totSecond, totSecond2))) + 1)
+      if(nrow(x) > length(totSecond)){
+        totSecond2<-as.integer(difftime(x$dateTime[(length(totSecond) +1): nrow(x)] ,x$dateTime[1], units = c("secs")))
+      }else{
+        totSecond2 <- NULL
+      }
+      studySecond <- as.integer((c(totSecond, totSecond2) -min(c(totSecond, totSecond2))) + 1) + blockTimeAdjustment
       
-      numblocks <- ceiling((max(studySecond) - 1)/blockLength1)
+      numblocks <- as.integer(ceiling((max(studySecond) - 1)/blockLength1))
       block <-rep(0,length(studySecond))
       for(g in 1:(numblocks -1)){ #numblocks - 1 because the last block in the dataset may be smaller than previous blocks (if blockLength1 does not divide evenly into timedif)
         block[which(studySecond >= ((g-1)*blockLength1 + 1) & studySecond <= (g*blockLength1))] = g
@@ -322,8 +364,8 @@ potentialDurations<-function(x, blocking = FALSE, blockLength = 1, blockUnit = "
         block[which(block == 0)] = numblocks
       }
       
-      block.start<-as.character(as.POSIXct(x$dateTime[1]) + ((block - 1)*blockLength1)) #identify the timepoint where each block starts (down to the second resolution)
-      block.end<-as.character(as.POSIXct(x$dateTime[1]) + ((block - 1)*blockLength1) + (blockLength1 -1)) #identify the timepoint where each block ends (down to the second resolution)
+      block.start<-as.character((as.POSIXct(x$dateTime[1]) - blockTimeAdjustment) + ((block - 1)*blockLength1)) #identify the timepoint where each block starts (down to the second resolution)
+      block.end<-as.character((as.POSIXct(x$dateTime[1]) - blockTimeAdjustment) + ((block - 1)*blockLength1) + (blockLength1 -1)) #identify the timepoint where each block ends (down to the second resolution)
       
       x$block <- block
       x$block.start <- block.start

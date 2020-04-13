@@ -28,7 +28,7 @@ Here we demonstrate how to use contact functions to:
 ###2.) Create polygon-intersection-based contact networks using point-location data
 ###3.) Test networks against NULL models
 
-Please note that a manuscript detailing novel methodologies we've developed for accounting for space and real-time-location-system accuracy when creating contact networks from point-location data is currently in Press for publication in *Ecology and Evolution*. This same manuscript will introduce the *contact* package to the scientific community. Methods from this manuscript are described briefly in this vignette, but will be described in much greater detail upon publication of our manuscript. In this vignette, you may notice the citation "Farthing *et al.* (in Press)." This citation refers to the aforementioned manuscript. When the manuscript is officially published, we will update citation and reference information here.
+Please note that a manuscript detailing novel methodologies we've developed for accounting for space and real-time location-system accuracy when creating contact networks from point-location data was recently published in *Ecology and Evolution*. This same manuscript introduces the *contact* package to the scientific community. Our methods are described briefly in this vignette, but are presented in much greater detail in our manuscript, which is available at https://doi.org/10.1002/ece3.6225.
 
 ```{r setup}
 #load the contact package
@@ -52,15 +52,16 @@ The steps for environmental-contact network creation are described below.
 
 **E.) Visualize the contact network with edgeweights weighted according to number of observed contacts.**
 
-```{r Section 1, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r Section 1, echo=TRUE, warning = FALSE, eval = TRUE}
 
 data("calves") #load the calves data set
+calves<-droplevels(calves[1:1000,]) #reduce the size to reduce processing time for this vignette.
 
 ```
 
 **A.) Ensure all required columns exist in the calves data set (i.e., xy coordinates, unique individual IDs, dateTime)**
 
-```{r, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r, echo=TRUE, warning = FALSE, eval = TRUE}
 
 head(calves)#The calves data set does not have a singular dateTime column. Rather, it has "date" and "time" columns. We must append a dateTime column to the data frame.
 
@@ -72,7 +73,7 @@ system.time(calves.dateTime<- contact::datetime.append(x = calves, date = calves
 
 First, we must define the location of the water trough. To do this, we read in point-location data for the water-trough vertices.
 
-```{r, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r, echo=TRUE, warning = FALSE, eval = TRUE}
 
 water<- data.frame(x = c(61.43315, 61.89377, 62.37518, 61.82622), y = c(62.44815, 62.73341, 61.93864, 61.67411)) #This is a data frame containing the x and y coordinates of the four trough vertices.
 
@@ -80,7 +81,7 @@ water<- data.frame(x = c(61.43315, 61.89377, 62.37518, 61.82622), y = c(62.44815
 
 As noted in the dist2Area_df help documention, polygon-vertex coordinates must be arranged in a particular way. Here we arrange them accordingly.
 
-```{r, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r, echo=TRUE, warning = FALSE, eval = TRUE}
 
 water_poly<-data.frame(matrix(ncol = 8, nrow = 1)) #(ncol = number of vertices)*2
 colnum = 0
@@ -94,7 +95,7 @@ for(h in 1:nrow(water)){
 
 Calculate distances between calves and the water polygon at every timestep.
 
-```{r, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r, echo=TRUE, warning = FALSE, eval = TRUE}
 
 system.time(water_distance<-contact::dist2Area_df(x = calves.dateTime, y = water_poly, x.id = "calftag", y.id = "water", dateTime = "dateTime", point.x = calves.dateTime$x, point.y = calves.dateTime$y, poly.xy = NULL, parallel = FALSE, dataType = "Point", lonlat = FALSE, numVertices = NULL)) #note that the poly.xy and numVertices arguments refer to vertices of polygons in x, not y. Because dataType is "Point," not "Polygon," these arguments are irrelevant here.
 
@@ -104,7 +105,7 @@ head(water_distance)
 
 **C.) Identify what SpTh value will allow us to capture 99% of contacts, defined as instances when point-locations were within 0.333 m of the water trough, given the RTLS accuracy.**
 
-```{r, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r, echo=TRUE, warning = FALSE, eval = TRUE}
 
 SpThValues<-contact::findDistThresh(n = 100000, acc.Dist1 = 0.5, acc.Dist2 = NULL, pWithin1 = 90, pWithin2 = NULL, spTh = 0.5) #spTh represents the initially-defined spatial threshold for contact. Note that we've chosen to use 100,000 in-contact point-location pairs here.
 
@@ -116,7 +117,7 @@ CI_99<-unname(SpThValues[21]) #we will use this SpTh value moving forward.
 
 **D.) Identify time points when calves were within the re-adjusted SpTh distance from water trough.**
 
-```{r, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r, echo=TRUE, warning = FALSE, eval = TRUE}
 
 system.time(water_contacts <- contact::contactDur.area(water_distance, dist.threshold=CI_99,sec.threshold=1, blocking = FALSE, equidistant.time = FALSE, parallel = FALSE, reportParameters = TRUE)) #Note that because we are not interested in making a time-aggregated network with > 1 temporal levels, we set blocking = FALSE to reduce processing time.
 
@@ -126,7 +127,7 @@ head(water_contacts)
 
 **E.) Visualize the contact network with edgeweights weighted according to number of observed contacts.**
 
-```{r, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r, echo=TRUE, warning = FALSE, eval = TRUE}
 
 system.time(water_edges<- contact::ntwrkEdges(x = water_contacts, importBlocks = FALSE, removeDuplicates = TRUE)) #get specific weighted edges
 
@@ -135,7 +136,7 @@ head(water_edges)
 ```
 Now we can vizualize the network using igraph functions.
 
-```{r, echo=TRUE, warning = FALSE, eval = FALSE}
+```{r, echo=TRUE, warning = FALSE, eval = TRUE}
 
 water.network <- igraph::simplify(igraph::graph_from_data_frame(d=water_edges, directed=F, vertices =  c(seq(101,110), "water")),remove.multiple = T, remove.loops = T) #Note that we have to specify the nodes here because not all calves were observed in contact with the water trough.
 igraph::V(water.network)$color<- "orange1" #make calf nodes orange
@@ -151,6 +152,8 @@ igraph::plot.igraph(water.network, layout = watercoords1)
 ```
 ###Section 2.) Creating polygon-intersection-based direct-contacts network using point-location data
 
+**Note that this section was run with eval = FALSE because otherwise the processing time for this vignette is longer than what is allotted by CRAN**
+
 Here, we show how to create contact networks detailing the number of direct, physical contacts between tracked individuals. We derive polygons represntative of animals' physical space from point-locations. We then define "contact" as occuring when polygons intersect (i.e., SpTh == 0). However, we re-define this SpTh to account for RTLS accuracy using the findDistThresh function below. 
 
 The data set we use, calves2018, is comprised of point-locations collected using a radio-telemetry-based real-time location system (RTLS) (Smartbow GmbH, Weibern, Austria) to monitor the locations of n = 20 steers in a 30m X 35m feedlot pen located at the Kansas State University Beef Cattle Research Center in Manhattan, KS. Manufacturer-reported RTLS spatial resolution and accuracy was 0.5m and 90%, respectively (i.e., 90% of location fixes are within 0.5m of animals' true locations). Tracked steers were approximately 1.5 years old, with estimated 1.5-m nose-to-tail lengths and 0.5-m shoulder widths, and radio-frequency-identication (RFID) tracking devices were located on animals' left ears. Data in this set were collected continuously between 00:00:00 06/01/2018 and 11:59:59 06/03/2018 UTC at a 5-10s temporal resolution (i.e., positional fixes for each individual were obtained every 5-10 seconds). However, to reduce processing time in this vignette, we subset the calves2018 data set to only contain point-locations observed between 00:00:00 and 11:59:59 UTC on 06/01/2018. 
@@ -165,7 +168,7 @@ The steps for direct-contact-network creation are described below.
 
 **D.) Derive calf head and body polygons from point locations.**
 
-  Note: This is done using a novel methodology described in brief on the contact::referencePoint2Polygon and contact::referencePoint2Polygon help pages, and in detail in a manuscript currently in press with *Ecology and Evolution* (the same manuscript in which we introduce this package to the scientific community).
+  Note: This is done using a novel methodology described in brief on the contact::referencePoint2Polygon and contact::referencePoint2Polygon help pages, and in detail in Farthing *et al.* 2020 (the same manuscript in which we introduce this package to the scientific community).
 
 **E.) Calculate inter-animal distances at each time step.**
 
@@ -177,7 +180,6 @@ The steps for direct-contact-network creation are described below.
 
 ```{r Section 2, echo=TRUE, warning = FALSE, eval = FALSE}
 data("calves2018") #load the data set
-
 ```
 
 **A.) Subset calves2018 and ensure all required columns exist in the calves data set (i.e., xy coordinates, unique individual IDs, dateTime)**
@@ -256,7 +258,7 @@ head(calf_heads)
 
 ```
 
-When creating the head polygons, we set direction == NULL because we do not have gyroscopic data detailing movement directions associated with each relocation event. Thus, polygons are subject to the assumptions pertaining to deriving polygons from point-locations as described by Farthing *et al.* (in Press). (*see* the contact::referencePoint2Polygon help page for a brief description of these assumptions).
+When creating the head polygons, we set direction == NULL because we do not have gyroscopic data detailing movement directions associated with each relocation event. Thus, polygons are subject to the assumptions pertaining to deriving polygons from point-locations as described by Farthing *et al.* (2020). (*see* the contact::referencePoint2Polygon help page for a brief description of these assumptions).
 
 Note that the referencePoint2Polygon function assumes the input point-locations represent a single vertex of desired polygons. Because calves' heads are not the same width as their bodies (i.e., 1.167 m X 0.5 m ; L X W), and are assumed to be centered at the front of the body, however, we must move reference points (on the left ear) to the left by 0.0835 m to reposition them at the upper-left corner of calves bodies before creating body polygons. Additionally, note that we are assuming ears are parallel to shoulder-tips.
 
@@ -276,7 +278,7 @@ head(leftShoulder.point)
 
 See that moving the points changed the calculated dx,dy values from those associated with empirical data points. Therefore, movement angles calculated from these data points will differ from values calculated using the empirical observations. Because of that, when creating body polygons, we must specify that the function use angle values from the empirical data set. Luckily, the function allows for this very easily.  
 
-Additionally, the differing calculated-distance values will potentially cause misalignment errors when unioning the head and body polygons if either is created with a specified immobility threshold (*see* referencePoint2Polygon help page). As outlined by Farthing *et al.* (in Press), in the absence of accompanying gyroscopic data, movement angles are calculated based on observed relocation events with the assumption that all individuals are forward-facing when moving. Thus, specifying an immobility threshold (i.e., observed relocation distance required for us to state that movement actually occurred) is necessary to reduce directional errors by discounting observed movements so miniscule that the majority of the modeled physical-space is likely unaffected (e.g., head shaking), and therefore would not be repositioned. Thus, prior to unioning the polygons, we will not implement an immobility threshold.
+Additionally, the differing calculated-distance values will potentially cause misalignment errors when unioning the head and body polygons if either is created with a specified immobility threshold (*see* referencePoint2Polygon help page). As outlined by Farthing *et al.* (2020), in the absence of accompanying gyroscopic data, movement angles are calculated based on observed relocation events with the assumption that all individuals are forward-facing when moving. Thus, specifying an immobility threshold (i.e., observed relocation distance required for us to state that movement actually occurred) is necessary to reduce directional errors by discounting observed movements so miniscule that the majority of the modeled physical-space is likely unaffected (e.g., head shaking), and therefore would not be repositioned. Thus, prior to unioning the polygons, we will not implement an immobility threshold.
 
 Moving forward, let's generate the vertices for calves' anterior- and posterior-body polygons (i.e., we're dividing body polygons into two halves). Rather than running the referencePoint2Polygon function twice, we instead set MidPoints = TRUE, which will effectively identify vertices for the bottom of anterior body sections/top of posterior ones. 
 
@@ -413,13 +415,15 @@ fullBody.network <- igraph::simplify(igraph::graph_from_data_frame(d=fullBody_ed
 
 igraph::V(fullBody.network)$color<- "orange1"
 igraph::V(fullBody.network)$size <-13
-igraph::E(fullBody.network)$width <- fullBody_edges$duration/100 #edge width is proportional to contact frequency
+igraph::E(fullBody.network)$width <- fullBody_edges$duration/50 #edge width is proportional to contact frequency
 igraph::E(fullBody.network)$color <- "black"
 igraph::plot.igraph(fullBody.network, vertex.label.cex=0.4, layout = igraph::layout.circle) 
 
 ```
 
 ###Section 3.) Test networks against NULL models
+
+**Note that this section was run with eval = FALSE because otherwise the processing time for this vignette is longer than what is allotted by CRAN**
 
 Farine (2017) provides a general overview of the importance of NULL-model creation and evaluation. Briefly, comparing empirical contact networks to NULL models, allows us to determine if observed contacts occur more or less frequently than would be expected at random. This allows us to test a number of hypotheses. For example, by comparing contact-networks derived from tracked sleepy lizard (*Tiliqua rugosa*) point-locations, Spiegel *et al.* (2016) determined that this species exhibits sociality. The point-location randomization procedure they developed for NULL-model creation accounts for environmental drivers of movement, suggesting that any observed differences in contact frequency (relative to NULL models) are driven by social behaviors. This point-location randomization procedure can be implemented through the randomizePaths function.
 
@@ -477,11 +481,11 @@ Note that the newly-created smoothed-point-location data set, calves.10secSmooth
 
 **C.) Randomize the newly-created point-location data set.**
 
-In accordance with the Spiegel *et al.* (2016) procedure, individuals' movement paths (i.e., sequential relocation events) within defined time blocks will be shuffled around in time, so that individuals visit the same places, just not at the same times. Here, 10-minute time blocks are shuffled between hours of the day on 06/01/2018. For a more detailed description of the relationship between blockUnits and shuffleUnits in the randomizePaths function, please see the randomizePaths function help page. In the interest of relatively quick processing speeds later on, we will only create 20 randomized replicates here.
+In accordance with the Spiegel *et al.* (2016) procedure, individuals' movement paths (i.e., sequential relocation events) within defined time blocks will be shuffled around in time, so that individuals visit the same places, just not at the same times. Here, 10-minute time blocks are shuffled between hours of the day on 06/01/2018. For a more detailed description of the relationship between blockUnits and shuffleUnits in the randomizePaths function, please see the randomizePaths function help page. In the interest of relatively quick processing speeds later on, we will only create 5 randomized replicates here.
 
 ```{r, echo=TRUE, warning = FALSE, eval = FALSE}
 
-nRandomizations <- 20 #we will create 20 randomized-hour replicates.
+nRandomizations <- 5 #we will create 5 randomized-hour replicates.
 
 system.time(randomHourlyCalfPaths.list <- contact::randomizePaths(x = calves.10secSmoothed.na, id = calves.10secSmoothed.na$id, dateTime = calves.10secSmoothed.na$dateTime, point.x = calves.10secSmoothed.na$x, point.y = calves.10secSmoothed.na$y, poly.xy = NULL, parallel = FALSE, dataType = "Point", numVertices = 4, blocking = TRUE, blockUnit = "mins", blockLength = 10, shuffle.type = 2, shuffleUnit = "hours", indivPaths = TRUE, numRandomizations = nRandomizations))
 
@@ -631,7 +635,7 @@ mantelOutput #based on the reported p-value, given an alpha-level of 0.05, we ca
 
 Farine, D.R., 2017. A guide to null models for animal social network analysis. *Methods in Ecology and Evolution* 8:1309-1320. https://doi.org/10.1111/2041-210X.12772.
 
-Farthing, T.S., Dawson, D.E., Sanderson, M.W., and Lanzas, C. in Press. Accounting for space and uncertainty in real-time-location- system-derived contact networks. *Ecology and Evolution.*
+Farthing, T.S., Dawson, D.E., Sanderson, M.W., and Lanzas, C. 2020. Accounting for space and uncertainty in real-time location system-derived contact networks. *Ecology and Evolution* 00:1-14. https://doi.org/10.1002/ece3.6225.
 
 Mantel, N. 1967. The detection of disease clustering and a generalized regression approach. *Cancer Research* 27:209–220.
 
