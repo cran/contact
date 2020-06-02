@@ -62,13 +62,16 @@
 #' igraph::E(calves.network1)$color <- "black"
 #' igraph::plot.igraph(calves.network1, vertex.label.cex=0.4,
 #'    layout = igraph::layout.circle, main = "Inter-Calf Contacts") #plot the network
-#'    
+#'
+#' @import foreach
 #' @export
 
 ntwrkEdges<-function(x, importBlocks = FALSE, removeDuplicates = TRUE, parallel = FALSE, nCores = (parallel::detectCores()/2)){
   
   #bind the following variables to the global environment so that the CRAN check doesn't flag them as potential problems
   i <- NULL
+  j <- NULL
+  
   dupAction<-removeDuplicates
   
   #write the sub-functions
@@ -347,12 +350,16 @@ ntwrkEdges<-function(x, importBlocks = FALSE, removeDuplicates = TRUE, parallel 
     names(potential_edges) <- c("from", "to")
     
     if(removeDuplicates == TRUE){
-      rm_Vec<-NULL
-      for(i in unique(potential_edges$to)){
+      rm_Vec<- unlist(foreach::foreach(i = unique(potential_edges$to)) %do% { #creates a vector of rows describing duplicated edges.
+        if(is.factor(i) == TRUE){ #if i is a factor, change it to a character string. This prevents it from returning an error
+          
+          i <- as.character(i)
+          
+        }
         last_edge<-max(which(potential_edges$to == i)) #identifies the last observation of an edge attached to node i
         rm<-(which(potential_edges$from[(last_edge + 1):nrow(potential_edges)] == i) + last_edge) #identifies which rows after max describe edges attached to node i
-        rm_Vec<-c(rm_Vec, rm) #creates a vector of rows describing duplicated edges.
-      }
+        return(rm)
+      })
       if(length(rm_Vec > 0)){ #this if statement ensures that no empty edgelist results from trying to remove an empty rm_Vec
         potential_edges<- potential_edges[-rm_Vec,] #now we have our potential network edge set with no duplicate edges.
       }
@@ -365,6 +372,9 @@ ntwrkEdges<-function(x, importBlocks = FALSE, removeDuplicates = TRUE, parallel 
     return(confirmed_edges)
   }
   edgeGenerator.Block<-function(x, removeDuplicates = dupAction, par = parallel, cores = nCores){
+    
+    block <-NULL #bind this to the global environment to prevent a check flag.
+    
     confirm_edges.Block<-function(x,y){ #x = potential edges, y = contactSummary; essentially presents contact summary results in long form
       if(length(levels(unname(unlist(x[2])))) > 1){ #This has to be here to avoid an error when trying to coerce output into the out.frame
         x2.id <- droplevels(unname(unlist(x[2])))
@@ -395,20 +405,27 @@ ntwrkEdges<-function(x, importBlocks = FALSE, removeDuplicates = TRUE, parallel 
     potential_edges2<-merge(potential_edges1, block_info, by = "block") #note that this merge reorders the columns, by placing the "block" column first.
     potential_edges2<-potential_edges2[order(as.numeric(as.character(potential_edges2$block))),] #orders rows by ascending block number.
     
-    if(removeDuplicates == TRUE){ #I know this double for-loop is relatively inefficient. In future versions I will update this to be an apply function.
-      rm_Vec<-NULL
-      for(i in unique(potential_edges2$to)){
-        for(j in unique(potential_edges2$block)){
-          start_block<-min(which(potential_edges2$block == j))
-          end_block<-max(which(potential_edges2$block == j))
-          last_edge<-max(which(potential_edges2$to[1:end_block] == i)) #identifies the last observation of an edge attached to node i
-          rm<-(which(potential_edges2$from[(last_edge + 1):end_block] == i) + last_edge) #identifies which rows should be removed to ensure duplicates are taken out of each block
-          rm_Vec<-c(rm_Vec, rm) #creates a vector of rows describing duplicated edges.
+    if(removeDuplicates == TRUE){ 
+      
+      blocks.adjusted<- foreach::foreach(j = unique(potential_edges2$block), .packages = "foreach") %do% { #creates a vector of rows describing duplicated edges.
+        
+        blockSub<- droplevels(subset(potential_edges2, block == j)) #subset the data by block
+        
+        rm_block<-unlist(foreach::foreach(i = unique(blockSub$to)) %do% {
+          
+          last_edge<-max(which(blockSub$to == i)) #identifies the last observation of an edge attached to node i
+          rm<-(which(blockSub$from[(last_edge + 1):nrow(blockSub)] == i) + last_edge) #identifies which rows should be removed to ensure duplicates are taken out of each block
+          return(rm)
+        })
+        
+        if(length(rm_block) > 0){ #if there are any identified rows in the rm.vec, we remove them from blockSub
+          blockSub<- droplevels(blockSub[-rm_block,]) #remove duplicates
         }
+        
+        return(blockSub) #return the blockSub data frame
       }
-      if(length(rm_Vec > 0)){ #this if statement ensures that no empty edgelist results from trying to remove an empty rm_Vec
-        potential_edges2<- potential_edges2[-rm_Vec,] #now we have our potential network edge set with no duplicate edges.
-      }
+      
+      potential_edges2 <- data.frame(data.table::rbindlist(blocks.adjusted)) #bind the adjusted block sets together to redefine potential_edges2
     }
     
     edgelist<-apply(potential_edges2,1,confirm_edges.Block, y=contactSummary) #confirm whether edges existed or not. If "durations" is NA, then no edge existed. 
