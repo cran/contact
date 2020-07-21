@@ -51,9 +51,9 @@ head(water_distance)
 
 SpThValues<-contact::findDistThresh(n = 100000, acc.Dist1 = 0.5, acc.Dist2 = NULL, pWithin1 = 90, pWithin2 = NULL, spTh = 0.5) #spTh represents the initially-defined spatial threshold for contact. Note that we've chosen to use 100,000 in-contact point-location pairs here.
 
-SpThValues #it looks like an adjusted SpTh value of approximately 0.71 m will likely capture 99% of contacts, defined as instances when point-locations were within 0.333 m of the water trough, given the RTLS accuracy. #Note that because these confidence intervals are obtained from distributions generated from random samples, every time this function is run, results will be slightly different. 
+SpThValues #it looks like an adjusted SpTh value of approximately 1.74 m will likely capture 99 to 100% of contacts, defined as instances when point-locations were within 0.333 m of the water trough, given the RTLS accuracy. #Note that because these confidence intervals are obtained from distributions generated from random samples, every time this function is run, results will be slightly different. 
 
-CI_99<-unname(SpThValues[21]) #we will use this SpTh value moving forward.
+CI_99<-unname(SpThValues[["spTh.adjustments"]][3]) #we will use this SpTh value moving forward.
 
 
 ## ---- echo=TRUE, warning = FALSE, eval = TRUE---------------------------------
@@ -108,8 +108,10 @@ igraph::plot.igraph(water.network, layout = watercoords1)
 #  
 #  confinementCoords <- data.frame(object = c("feed", "feed", "feed", "feed","fence", "fence", "fence", "fence", "fence"), x = c(46.0118, 46.6482, 58.3415, 57.6507, 60.5775, 29.3054, 16.7602, 17.0590, 46.0309), y = c(197.0570, 197.4131, 175.9618, 175.6284, 170.4628, 153.6002, 176.5861, 181.6315, 197.1261)) #these are the x & y coordinates for the feedlot-pen fenceline and adjacent feedbunk vertices. Note that they are arranged in a clockwise order, as the confine function below requires input vertices to be ordered clockwise or counter-clockwise.
 #  
-#  {plot(confinementCoords$x,confinementCoords$y, col = confinementCoords$object, lines(c(confinementCoords$x, confinementCoords$x[1]),c(confinementCoords$y, confinementCoords$y[1])), pch=16, main = "confinement polygon")
-#   legend(15.6, 198, col = c(2,1), legend = c("fence vertex", "feed vertex"), cex = 0.7, pch = 16)} #this is what the pen outline looks like.
+#  plot(confinementCoords$x,confinementCoords$y,lines(c(confinementCoords$x, confinementCoords$x[1]),c(confinementCoords$y, confinementCoords$y[1])), pch=16, main = "confinement polygon") #this is what the pen outline looks like.
+#  
+
+## ---- echo = TRUE, warning = FALSE, eval = FALSE------------------------------
 #  
 #  system.time(calves_filter2<-contact::confine(calves_filter1, point.x = calves_filter1$x, point.y = calves_filter1$y, confinementCoord.x = confinementCoords$x, confinementCoord.y = confinementCoords$y, filterOutput = TRUE)) #this removed an additional 1784 observations
 #  
@@ -216,9 +218,9 @@ igraph::plot.igraph(water.network, layout = watercoords1)
 #  
 #  polySpThValues<-contact::findDistThresh(n = 100000, acc.Dist1 = 0.5, acc.Dist2 = NULL, pWithin1 = 90, pWithin2 = NULL, spTh = 0) #spTh represents the initially-defined spatial threshold for contact. #spTh represents the initially-defined spatial threshold for contact. Note that we've chosen to use 100,000 in-contact point-location pairs here.
 #  
-#  polySpThValues #it looks like an adjusted SpTh value of approximately 0.54 m will likely capture 99% of contacts, defined as instances when point-locations were within 0 m of one another, given the RTLS accuracy. #Note that because these confidence intervals are obtained from distributions generated from random samples, every time this function is run, results will be slightly different.
+#  polySpThValues #it looks like an adjusted SpTh value of approximately 1.38 m will likely capture 99% of contacts, defined as instances when point-locations were within 0 m of one another, given the RTLS accuracy. #Note that because these confidence intervals are obtained from distributions generated from random samples, every time this function is run, results will be slightly different.
 #  
-#  polyCI_99<-unname(polySpThValues[21]) #we will use this SpTh value moving forward.
+#  polyCI_99<-unname(polySpThValues[["spTh.adjustments"]][3]) #we will use this SpTh value moving forward.
 #  
 
 ## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
@@ -262,98 +264,46 @@ igraph::plot.igraph(water.network, layout = watercoords1)
 
 ## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
 #  
-#  system.time(calves.10secSmoothed.na <- contact::tempAggregate(x = calves_filter3, id = calves_filter3$calftag, point.x = calves_filter3$x, point.y = calves_filter3$y, dateTime = calves_filter3$dateTime, secondAgg = 10, extrapolate.left = FALSE, resolutionLevel = "reduced", extrapolate.right = FALSE, na.rm = FALSE, smooth.type = 2)) #Note that the difference between this data set and the one created in Section 2 is that na.rm = FALSE.
+#  nRandomizations <- 2 #we will create 2 randomized-hour replicates.
 #  
-
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
+#  system.time(calf_fullBody.random.list <- contact::randomizePaths(x = FullBody_noNAs, id = FullBody_noNAs$calf_id, dateTime = FullBody_noNAs$dateTime, point.x = NULL, point.y = NULL, poly.xy = FullBody_noNAs[,2:21], parallel = FALSE, dataType = "Polygon", numVertices = 10, blocking = TRUE, blockUnit = "hours", blockLength = 1, shuffle.type = 1, indivPaths = TRUE, numRandomizations = nRandomizations)) #see that we can directly randomize the polygon set. There's no need to take it back to the point data (unless you really want to). See also that we randomize the polygon set with NAs already removed so that we don't have to do it again.
 #  
-#  nRandomizations <- 5 #we will create 5 randomized-hour replicates.
-#  
-#  system.time(randomHourlyCalfPaths.list <- contact::randomizePaths(x = calves.10secSmoothed.na, id = calves.10secSmoothed.na$id, dateTime = calves.10secSmoothed.na$dateTime, point.x = calves.10secSmoothed.na$x, point.y = calves.10secSmoothed.na$y, poly.xy = NULL, parallel = FALSE, dataType = "Point", numVertices = 4, blocking = TRUE, blockUnit = "mins", blockLength = 10, shuffle.type = 2, shuffleUnit = "hours", indivPaths = TRUE, numRandomizations = nRandomizations))
-#  
-#  head(data.frame(randomHourlyCalfPaths.list[[1]])) #here's what the output looks like when you set shuffle.type == 2. (Note that NAs will likely be present, because we purposefully added them into the dataset above.)
-#  
-
-## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------
-#  
-#  ##Create 0.333 m X 0.333 m calf head polygons.
-#  #Note that this is done using the original (randomized) reference points, which denote the locations of RFID tags on individuals' left ears.
-#  system.time(calf_heads.random <- contact::referencePoint2Polygon(x = randomHourlyCalfPaths.list, id = "id", dateTime = "dateTime", point.x = "x.rand", point.y = "y.rand", direction = NULL, StartLocation = "DL", UpDownRepositionLen = 0.333, LeftRightRepositionLen = 0.333, CenterPoint = FALSE, MidPoints = FALSE, immobThreshold = 0, parallel = FALSE, modelOrientation = 90))
-#  
-#  #reposition randomized reference points to left-shoulder points
-#  system.time(leftShoulder.point.random<-contact::repositionReferencePoint(x = randomHourlyCalfPaths.list, id = "id", dateTime = "dateTime", point.x = "x.rand", point.y = "y.rand", direction = NULL, repositionAngle = 180, repositionDist = 0.0835, immobThreshold = 0, parallel = FALSE, modelOrientation = 90))
-#  
-#  #create 1.167 m X 0.5 m calf body polygons
-#  system.time(calf_bods.random <- contact::referencePoint2Polygon(x = leftShoulder.point.random, id = "id", dateTime = "dateTime", point.x = "x.adjusted", point.y = "y.adjusted", direction = "movementDirection", StartLocation = "UL", UpDownRepositionLen = 1.167, LeftRightRepositionLen = 0.5, CenterPoint = FALSE, MidPoints = TRUE, immobThreshold = 0, parallel = FALSE, modelOrientation = 90)) #note that direction == leftShoulder.point.random$movementDirection.
+#  head(data.frame(calf_fullBody.random.list[[1]])) #here's what the output looks like when you set shuffle.type == 1. See that there are separate coordinate columns designated "rand."
 #  
 
 ## ---- echo = TRUE, warning = FALSE, eval = FALSE------------------------------
 #  
-#  calf_fullBody.random.list<-list(NULL) #make empty list to be filled with the for-loop below
+#  fullBodyVertexColnames<- colnames(data.frame(calf_fullBody.random.list[[1]]))[27:46] #these are the column names of columns in the data frames contained within calf_fullBody.random.list that contain randomized full-body-polygon-vertex information.
 #  
-#  for(j in seq(from = 1, to = nRandomizations, by = 1)){
-#  
-#    head.random_j <- data.frame(calf_heads.random[[j]]) #pull the j-th data frame in calf_heads.random
-#    bod.random_j <- data.frame(calf_bods.random[[j]]) #pull the j-th data frame in calf_bods.random
-#    leftShoulder.random_j <- data.frame(leftShoulder.point.random[[j]]) #pull the j-th data frame in leftShoulder.point.random
-#  
-#    #union the two randomized-polygon sets
-#    calf_fullBody.random <- data.frame(calf_id = bod.random_j$id, vertex1.x = bod.random_j$cornerPoint1.x, vertex1.y = bod.random_j$cornerPoint1.y, vertex2.x = head.random_j$cornerPoint1.x, vertex2.y = head.random_j$cornerPoint1.y, vertex3.x = head.random_j$cornerPoint2.x, vertex3.y = head.random_j$cornerPoint2.y, vertex4.x = head.random_j$cornerPoint3.x, vertex4.y = head.random_j$cornerPoint3.y, vertex5.x = head.random_j$cornerPoint4.x, vertex5.y = head.random_j$cornerPoint4.y, vertex6.x = bod.random_j$cornerPoint2.x, vertex6.y = bod.random_j$cornerPoint2.y,  vertex7.x = bod.random_j$midPoint2.x, vertex7.y = bod.random_j$midPoint2.y, vertex8.x = bod.random_j$cornerPoint3.x, vertex8.y = bod.random_j$cornerPoint3.y, vertex9.x = bod.random_j$cornerPoint4.x, vertex9.y = bod.random_j$cornerPoint4.y, vertex10.x = bod.random_j$midPoint4.x, vertex10.y = bod.random_j$midPoint4.y, dateTime = bod.random_j$dateTime)
-#  
-#    immobility.vec.random<- (which(leftShoulder.random_j$dist.original < 0.1) + 1) #create a vector describing which polygons in head.random_j moved < 0.1m. Note that we add 1 to returned values because leftShoulder.random_j$dist.original details the distance to the successive point, but we want distance to the proceeding point.
-#    calf_fullBody.random.immob<-calf_fullBody.random
-#  
-#    calf_fullBody.matrix.random<-as.matrix(calf_fullBody.random[,2:21]) #convert vertex columns to matrix for speed
-#  
-#    for(h in immobility.vec.random){
-#      calf_fullBody.matrix.random[h,] <- unname(unlist(calf_fullBody.random[(h-1),2:21])) #replace h-th observations in calf_FullBody.random with the preceding coordinates.
-#    }
-#  
-#    calf_fullBody.random.immob[,2:21]<- calf_fullBody.matrix.random #replace with the updated locations.
-#  
-#    naObs.random<-which(is.na(calf_fullBody.random.immob$vertex10.x) == T) #by identifying where NAs were introduced for any body vertex (other than vertex 1, which was left-shoulder point used to generate other vertices), we can determine what rows to remove. Note: we use a body vertex because two NAs were introduced (i.e., one from left-shoulder repositioning and another from polygon creation), as opposed to only one.
-#  
-#    fullBody_noNAs.random<-droplevels(calf_fullBody.random.immob[-naObs.random,]) #remove NA coordinates
-#  
-#    calf_fullBody.random.list[[j]] <- fullBody_noNAs.random
-#  }
+#  system.time(fullBody_distances.random<-contact::dist2All_df(x = calf_fullBody.random.list, id = "id", dateTime = "dateTime", point.x = NULL, point.y = NULL, poly.xy = fullBodyVertexColnames, elev = NULL, parallel = FALSE, dataType = "Polygon", lonlat = FALSE, numVertices = 10)) #Note that the difference between this distance set and the one created in Section 2 is that x is a list and other arguments are given column-name information rather than vectors of length(nrow(x)).
 #  
 
 ## ---- echo = TRUE, warning = FALSE, eval = FALSE------------------------------
 #  
-#  fullBodyVertexColnames<- colnames(data.frame(calf_fullBody.random.list[[1]]))[2:21] #these are the column names of columns in the data frames contained within calf_fullBody.random.list that contain full-body-polygon-vertex information.
-#  
-#  system.time(fullBody_distances.random<-contact::dist2All_df(x = calf_fullBody.random.list, id = "calf_id", dateTime = "dateTime", point.x = NULL, point.y = NULL, poly.xy = fullBodyVertexColnames, elev = NULL, parallel = FALSE, dataType = "Polygon", lonlat = FALSE, numVertices = 10)) #Note that the difference between this distance set and the one created in Section 2 is that x is a list and other arguments are given column-name information rather than vectors of length(nrow(x)).
-#  
-
-## ---- echo = TRUE, warning = FALSE, eval = FALSE------------------------------
-#  
-#  system.time(calf_fullBody_contacts.hr.random <- contact::contactDur.all(x = fullBody_distances.random, dist.threshold = polyCI_99, sec.threshold=10, blocking = FALSE, equidistant.time = FALSE, parallel = FALSE, reportParameters = TRUE)) #Note that we do not set blocking == TRUE here. There's no point, as because we randomized data according to the Spiegel et al. (2016) method, each list entry is only an hour's worth of data (see contact::randomizePaths help page).
+#  system.time(calf_fullBody_contacts.hr.random <- contact::contactDur.all(x = fullBody_distances.random, dist.threshold = polyCI_99, sec.threshold=10, blocking = TRUE, blockLength = 1, blockUnit = "hours", equidistant.time = FALSE, parallel = FALSE, reportParameters = TRUE)) #Note that we do not set blocking == TRUE here. There's no point, as because we randomized data according to the Spiegel et al. (2016) method, each list entry is only an hour's worth of data (see contact::randomizePaths help page).
 #  
 
 ## ---- echo=TRUE, warning=FALSE, eval = FALSE----------------------------------
 #  
 #  #create x.potential
-#  system.time(fullBody_distances2<-contact::dist2All_df(x = calves.10secSmoothed.na, id = calves.10secSmoothed.na$id, dateTime = "dateTime", point.x = NULL, point.y = NULL, poly.xy = fullBodyVertexColnames, elev = NULL, parallel = FALSE, dataType = "Point", lonlat = FALSE, numVertices = 1))
-#  
-#  system.time(x.potential <- contact::potentialDurations(fullBody_distances2, blocking = TRUE, blockLength = 1, blockUnit = "hours", distFunction = "dist2All_df")) # see blocking information here
+#  system.time(x.potential <- contact::potentialDurations(fullbody_distances, blocking = TRUE, blockLength = 1, blockUnit = "hours", distFunction = "dist2All_df")) # see blocking information here
 #  
 #  head(x.potential) #see the layout of x.potential
 #  
 #  #create y.potential
-#  system.time(y.potential <- contact::potentialDurations(fullBody_distances.random, blocking = FALSE, distFunction = "dist2All_df"))
+#  system.time(y.potential <- contact::potentialDurations(fullBody_distances.random, blocking = TRUE, blockLength = 1, blockUnit = "hours", distFunction = "dist2All_df"))
 #  
 #  #summarize empirical contacts
 #  system.time(x.summary <- contact::summarizeContacts(x = calf_fullBody_contacts.hr, importBlocks = TRUE, parallel = FALSE)) #note that
 #  head(x.summary) #see the layout of x.summary
 #  
 #  #summarize randomized contacts
-#  system.time(y.summary <- contact::summarizeContacts(x = calf_fullBody_contacts.hr.random, importBlocks = FALSE, avg = TRUE, parallel = FALSE))
+#  system.time(y.summary <- contact::summarizeContacts(x = calf_fullBody_contacts.hr.random[[2]], importBlocks = TRUE, avg = TRUE, parallel = FALSE))
 #  
 
 ## ---- echo=TRUE, warning=FALSE, eval = FALSE----------------------------------
 #  
-#  system.time(fullBody_NULLTest1<-contact::contactCompare_chisq(x.summary, y.summary, x.potential, y.potential, importBlocks = TRUE, shuffle.type = 2, popLevelOutput = TRUE, parallel = FALSE)) #Note that we MUST indicate the shuffle.type used to randomize point-locations.
+#  system.time(fullBody_NULLTest1<-contact::contactCompare_chisq(x.summary, y.summary, x.potential, y.potential, importBlocks = TRUE, shuffle.type = 1, popLevelOutput = TRUE, parallel = FALSE)) #Note that we MUST indicate the shuffle.type used to randomize point-locations.
 #  
 
 ## ---- echo=TRUE, warning = FALSE, eval = FALSE--------------------------------

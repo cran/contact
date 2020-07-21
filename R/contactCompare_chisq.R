@@ -11,7 +11,10 @@
 #'    are NOT consistent. This function SHOULD NOT be used to compare two 
 #'    empirical networks using Chi-squared tests, as the function assumes 
 #'    x.summary and y.summary represent observed and expected values, 
-#'    respectively.
+#'    respectively. Please note that this is a function of convience that is 
+#'    essentially a wrapper for the chisq.test function, that allows users to 
+#'    easily compare contact networks created using our pipeline of contact:: 
+#'    functions.
 #'    
 #' This function was inspired by the methods described by Spiegel et al. 2016. 
 #'    They determined individuals to be expressing social behavior when nodes 
@@ -880,12 +883,6 @@ contactCompare_chisq<-function(x.summary, y.summary, x.potential, y.potential = 
                                   "noContactDurations.y", "difference", "warning") #for some reason the data.frame command above kept producing incorrect colNames.
         
           ##add block information to summaryFrame (Note: we add the information for both x AND y even though the y information will be redundant unless shuffle.type == 2)
-          #summaryFrame$block.x <- unique(popLevelMetric$block.x)
-          #summaryFrame$block.start.x <- unique(popLevelMetric$block.start.x)
-          #summaryFrame$block.end.x <- unique(popLevelMetric$block.end.x)
-          #summaryFrame$block.y <- unique(popLevelMetric$block.y)
-          #summaryFrame$block.start.y <- unique(popLevelMetric$block.start.y)
-          #summaryFrame$block.end.y <- unique(popLevelMetric$block.end.y)
           
           summaryFrame$block.x <- unique(droplevels(processFrame[i,2]))
           summaryFrame$block.start.x <- unique(chisqOut$block.start.x[which(chisqOut$block.x == processFrame[i,2])])
