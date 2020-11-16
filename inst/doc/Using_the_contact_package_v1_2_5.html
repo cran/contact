@@ -12,7 +12,7 @@
 
 <meta name="author" content="Trevor S. Farthing" />
 
-<meta name="date" content="2020-07-21" />
+<meta name="date" content="2020-11-15" />
 
 <title>Using the contact package</title>
 
@@ -301,7 +301,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Using the contact package</h1>
 <h4 class="author">Trevor S. Farthing</h4>
-<h4 class="date">2020-07-21</h4>
+<h4 class="date">2020-11-15</h4>
 
 
 
@@ -338,7 +338,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb3-10" data-line-number="10"></a>
 <a class="sourceLine" id="cb3-11" data-line-number="11"><span class="kw">system.time</span>(calves.dateTime&lt;-<span class="st"> </span>contact<span class="op">::</span><span class="kw">datetime.append</span>(<span class="dt">x =</span> calves, <span class="dt">date =</span> calves<span class="op">$</span>date, <span class="dt">time=</span> calves<span class="op">$</span>time, <span class="dt">dateTime =</span> <span class="ot">NULL</span>, <span class="dt">dateFormat =</span> <span class="st">&quot;mdy&quot;</span>, <span class="dt">dateFake =</span> <span class="ot">FALSE</span>, <span class="dt">startYear =</span> <span class="ot">NULL</span>, <span class="dt">tz.in =</span> <span class="st">&quot;UTC&quot;</span>, <span class="dt">tz.out =</span> <span class="ot">NULL</span>, <span class="dt">month =</span> <span class="ot">FALSE</span>, <span class="dt">day =</span> <span class="ot">FALSE</span>, <span class="dt">year =</span> <span class="ot">FALSE</span>, <span class="dt">hour =</span> <span class="ot">FALSE</span>, <span class="dt">minute =</span> <span class="ot">FALSE</span>, <span class="dt">second =</span> <span class="ot">FALSE</span>, <span class="dt">daySecond =</span> <span class="ot">FALSE</span>, <span class="dt">totalSecond =</span> <span class="ot">FALSE</span>))</a>
 <a class="sourceLine" id="cb3-12" data-line-number="12"><span class="co">#&gt;    user  system elapsed </span></a>
-<a class="sourceLine" id="cb3-13" data-line-number="13"><span class="co">#&gt;   0.188   0.014   0.203</span></a></code></pre></div>
+<a class="sourceLine" id="cb3-13" data-line-number="13"><span class="co">#&gt;   0.113   0.008   0.122</span></a></code></pre></div>
 <p><strong>B.) Calculate distances between the water-trough polygon and calves at each time step.</strong></p>
 <p>First, we must define the location of the water trough. To do this, we read in point-location data for the water-trough vertices.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"></a>
@@ -356,7 +356,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"></a>
 <a class="sourceLine" id="cb6-2" data-line-number="2"><span class="kw">system.time</span>(water_distance&lt;-contact<span class="op">::</span><span class="kw">dist2Area_df</span>(<span class="dt">x =</span> calves.dateTime, <span class="dt">y =</span> water_poly, <span class="dt">x.id =</span> <span class="st">&quot;calftag&quot;</span>, <span class="dt">y.id =</span> <span class="st">&quot;water&quot;</span>, <span class="dt">dateTime =</span> <span class="st">&quot;dateTime&quot;</span>, <span class="dt">point.x =</span> calves.dateTime<span class="op">$</span>x, <span class="dt">point.y =</span> calves.dateTime<span class="op">$</span>y, <span class="dt">poly.xy =</span> <span class="ot">NULL</span>, <span class="dt">parallel =</span> <span class="ot">FALSE</span>, <span class="dt">dataType =</span> <span class="st">&quot;Point&quot;</span>, <span class="dt">lonlat =</span> <span class="ot">FALSE</span>, <span class="dt">numVertices =</span> <span class="ot">NULL</span>)) <span class="co">#note that the poly.xy and numVertices arguments refer to vertices of polygons in x, not y. Because dataType is &quot;Point,&quot; not &quot;Polygon,&quot; these arguments are irrelevant here.</span></a>
 <a class="sourceLine" id="cb6-3" data-line-number="3"><span class="co">#&gt;    user  system elapsed </span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="co">#&gt;   4.791   0.059   4.852</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="co">#&gt;   3.959   0.054   4.015</span></a>
 <a class="sourceLine" id="cb6-5" data-line-number="5"></a>
 <a class="sourceLine" id="cb6-6" data-line-number="6"><span class="kw">head</span>(water_distance)</a>
 <a class="sourceLine" id="cb6-7" data-line-number="7"><span class="co">#&gt;              dateTime totalIndividuals individualsAtTimestep  id dist.to.water</span></a>
@@ -373,22 +373,34 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb7-4" data-line-number="4">SpThValues <span class="co">#it looks like an adjusted SpTh value of approximately 1.74 m will likely capture 99 to 100% of contacts, defined as instances when point-locations were within 0.333 m of the water trough, given the RTLS accuracy. #Note that because these confidence intervals are obtained from distributions generated from random samples, every time this function is run, results will be slightly different. </span></a>
 <a class="sourceLine" id="cb7-5" data-line-number="5"><span class="co">#&gt; $distribution.summary</span></a>
 <a class="sourceLine" id="cb7-6" data-line-number="6"><span class="co">#&gt;        mean          sd         min         max         TPR </span></a>
-<a class="sourceLine" id="cb7-7" data-line-number="7"><span class="co">#&gt; 0.708201074 0.344679703 0.004711082 2.544589688 0.302580000 </span></a>
+<a class="sourceLine" id="cb7-7" data-line-number="7"><span class="co">#&gt; 0.706525171 0.344956778 0.002211602 2.569260670 0.304370000 </span></a>
 <a class="sourceLine" id="cb7-8" data-line-number="8"><span class="co">#&gt; </span></a>
-<a class="sourceLine" id="cb7-9" data-line-number="9"><span class="co">#&gt; $spTh.adjustments</span></a>
-<a class="sourceLine" id="cb7-10" data-line-number="10"><span class="co">#&gt;  spTh_84%Capture  spTh_98%Capture spTh_100%Capture </span></a>
-<a class="sourceLine" id="cb7-11" data-line-number="11"><span class="co">#&gt;         1.052881         1.397560         1.742240 </span></a>
-<a class="sourceLine" id="cb7-12" data-line-number="12"><span class="co">#&gt; </span></a>
-<a class="sourceLine" id="cb7-13" data-line-number="13"><span class="co">#&gt; $contact.frequency</span></a>
-<a class="sourceLine" id="cb7-14" data-line-number="14"><span class="co">#&gt;  freq_84%Capture  freq_98%Capture freq_100%Capture </span></a>
-<a class="sourceLine" id="cb7-15" data-line-number="15"><span class="co">#&gt;          0.83542          0.96688          0.99599</span></a>
-<a class="sourceLine" id="cb7-16" data-line-number="16"></a>
-<a class="sourceLine" id="cb7-17" data-line-number="17">CI_<span class="dv">99</span>&lt;-<span class="kw">unname</span>(SpThValues[[<span class="st">&quot;spTh.adjustments&quot;</span>]][<span class="dv">3</span>]) <span class="co">#we will use this SpTh value moving forward.</span></a></code></pre></div>
+<a class="sourceLine" id="cb7-9" data-line-number="9"><span class="co">#&gt; $CI_upper</span></a>
+<a class="sourceLine" id="cb7-10" data-line-number="10"><span class="co">#&gt;    50%-CI    55%-CI    60%-CI    65%-CI    70%-CI    75%-CI    80%-CI    85%-CI </span></a>
+<a class="sourceLine" id="cb7-11" data-line-number="11"><span class="co">#&gt; 0.7072609 0.7073492 0.7074433 0.7075447 0.7076558 0.7077800 0.7079232 0.7080955 </span></a>
+<a class="sourceLine" id="cb7-12" data-line-number="12"><span class="co">#&gt;    90%-CI    95%-CI    99%-CI </span></a>
+<a class="sourceLine" id="cb7-13" data-line-number="13"><span class="co">#&gt; 0.7083195 0.7086632 0.7093350 </span></a>
+<a class="sourceLine" id="cb7-14" data-line-number="14"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb7-15" data-line-number="15"><span class="co">#&gt; $CI_lwr</span></a>
+<a class="sourceLine" id="cb7-16" data-line-number="16"><span class="co">#&gt;    50%-CI    55%-CI    60%-CI    65%-CI    70%-CI    75%-CI    80%-CI    85%-CI </span></a>
+<a class="sourceLine" id="cb7-17" data-line-number="17"><span class="co">#&gt; 0.7057894 0.7057011 0.7056071 0.7055057 0.7053946 0.7052703 0.7051272 0.7049549 </span></a>
+<a class="sourceLine" id="cb7-18" data-line-number="18"><span class="co">#&gt;    90%-CI    95%-CI    99%-CI </span></a>
+<a class="sourceLine" id="cb7-19" data-line-number="19"><span class="co">#&gt; 0.7047309 0.7043871 0.7037153 </span></a>
+<a class="sourceLine" id="cb7-20" data-line-number="20"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb7-21" data-line-number="21"><span class="co">#&gt; $spTh.adjustments</span></a>
+<a class="sourceLine" id="cb7-22" data-line-number="22"><span class="co">#&gt;  spTh_84%Capture  spTh_98%Capture spTh_100%Capture </span></a>
+<a class="sourceLine" id="cb7-23" data-line-number="23"><span class="co">#&gt;         1.051482         1.396439         1.741396 </span></a>
+<a class="sourceLine" id="cb7-24" data-line-number="24"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb7-25" data-line-number="25"><span class="co">#&gt; $contact.frequency</span></a>
+<a class="sourceLine" id="cb7-26" data-line-number="26"><span class="co">#&gt;  freq_84%Capture  freq_98%Capture freq_100%Capture </span></a>
+<a class="sourceLine" id="cb7-27" data-line-number="27"><span class="co">#&gt;          0.83611          0.96679          0.99640</span></a>
+<a class="sourceLine" id="cb7-28" data-line-number="28"></a>
+<a class="sourceLine" id="cb7-29" data-line-number="29">CI_<span class="dv">99</span>&lt;-<span class="kw">unname</span>(SpThValues[[<span class="st">&quot;spTh.adjustments&quot;</span>]][<span class="dv">3</span>]) <span class="co">#we will use this SpTh value moving forward.</span></a></code></pre></div>
 <p><strong>D.) Identify time points when calves were within the re-adjusted SpTh distance from water trough.</strong></p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"></a>
 <a class="sourceLine" id="cb8-2" data-line-number="2"><span class="kw">system.time</span>(water_contacts &lt;-<span class="st"> </span>contact<span class="op">::</span><span class="kw">contactDur.area</span>(water_distance, <span class="dt">dist.threshold=</span>CI_<span class="dv">99</span>,<span class="dt">sec.threshold=</span><span class="dv">1</span>, <span class="dt">blocking =</span> <span class="ot">FALSE</span>, <span class="dt">equidistant.time =</span> <span class="ot">FALSE</span>, <span class="dt">parallel =</span> <span class="ot">FALSE</span>, <span class="dt">reportParameters =</span> <span class="ot">TRUE</span>)) <span class="co">#Note that because we are not interested in making a time-aggregated network with &gt; 1 temporal levels, we set blocking = FALSE to reduce processing time.</span></a>
 <a class="sourceLine" id="cb8-3" data-line-number="3"><span class="co">#&gt;    user  system elapsed </span></a>
-<a class="sourceLine" id="cb8-4" data-line-number="4"><span class="co">#&gt;   0.216   0.038   0.254</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4"><span class="co">#&gt;   0.176   0.029   0.206</span></a>
 <a class="sourceLine" id="cb8-5" data-line-number="5"></a>
 <a class="sourceLine" id="cb8-6" data-line-number="6"><span class="kw">head</span>(water_contacts)</a>
 <a class="sourceLine" id="cb8-7" data-line-number="7"><span class="co">#&gt;   indiv.id area.id contact.id contactDuration    contactStartTime</span></a>
@@ -399,17 +411,17 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb8-12" data-line-number="12"><span class="co">#&gt; 5      101   water  101-water               1 2016-05-02 00:47:47</span></a>
 <a class="sourceLine" id="cb8-13" data-line-number="13"><span class="co">#&gt; 6      101   water  101-water               1 2016-05-02 00:47:55</span></a>
 <a class="sourceLine" id="cb8-14" data-line-number="14"><span class="co">#&gt;        contactEndTime distThreshold secThreshold equidistant.time</span></a>
-<a class="sourceLine" id="cb8-15" data-line-number="15"><span class="co">#&gt; 1 2016-05-02 00:47:31       1.74224            1            FALSE</span></a>
-<a class="sourceLine" id="cb8-16" data-line-number="16"><span class="co">#&gt; 2 2016-05-02 00:47:35       1.74224            1            FALSE</span></a>
-<a class="sourceLine" id="cb8-17" data-line-number="17"><span class="co">#&gt; 3 2016-05-02 00:47:39       1.74224            1            FALSE</span></a>
-<a class="sourceLine" id="cb8-18" data-line-number="18"><span class="co">#&gt; 4 2016-05-02 00:47:43       1.74224            1            FALSE</span></a>
-<a class="sourceLine" id="cb8-19" data-line-number="19"><span class="co">#&gt; 5 2016-05-02 00:47:47       1.74224            1            FALSE</span></a>
-<a class="sourceLine" id="cb8-20" data-line-number="20"><span class="co">#&gt; 6 2016-05-02 00:47:55       1.74224            1            FALSE</span></a></code></pre></div>
+<a class="sourceLine" id="cb8-15" data-line-number="15"><span class="co">#&gt; 1 2016-05-02 00:47:31      1.741396            1            FALSE</span></a>
+<a class="sourceLine" id="cb8-16" data-line-number="16"><span class="co">#&gt; 2 2016-05-02 00:47:35      1.741396            1            FALSE</span></a>
+<a class="sourceLine" id="cb8-17" data-line-number="17"><span class="co">#&gt; 3 2016-05-02 00:47:39      1.741396            1            FALSE</span></a>
+<a class="sourceLine" id="cb8-18" data-line-number="18"><span class="co">#&gt; 4 2016-05-02 00:47:43      1.741396            1            FALSE</span></a>
+<a class="sourceLine" id="cb8-19" data-line-number="19"><span class="co">#&gt; 5 2016-05-02 00:47:47      1.741396            1            FALSE</span></a>
+<a class="sourceLine" id="cb8-20" data-line-number="20"><span class="co">#&gt; 6 2016-05-02 00:47:55      1.741396            1            FALSE</span></a></code></pre></div>
 <p><strong>E.) Visualize the contact network with edgeweights weighted according to number of observed contacts.</strong></p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"></a>
 <a class="sourceLine" id="cb9-2" data-line-number="2"><span class="kw">system.time</span>(water_edges&lt;-<span class="st"> </span>contact<span class="op">::</span><span class="kw">ntwrkEdges</span>(<span class="dt">x =</span> water_contacts, <span class="dt">importBlocks =</span> <span class="ot">FALSE</span>, <span class="dt">removeDuplicates =</span> <span class="ot">TRUE</span>)) <span class="co">#get specific weighted edges</span></a>
 <a class="sourceLine" id="cb9-3" data-line-number="3"><span class="co">#&gt;    user  system elapsed </span></a>
-<a class="sourceLine" id="cb9-4" data-line-number="4"><span class="co">#&gt;   0.015   0.005   0.021</span></a>
+<a class="sourceLine" id="cb9-4" data-line-number="4"><span class="co">#&gt;   0.015   0.005   0.019</span></a>
 <a class="sourceLine" id="cb9-5" data-line-number="5"></a>
 <a class="sourceLine" id="cb9-6" data-line-number="6"><span class="kw">head</span>(water_edges)</a>
 <a class="sourceLine" id="cb9-7" data-line-number="7"><span class="co">#&gt;   from    to durations</span></a>
@@ -638,7 +650,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb39-4" data-line-number="4"><span class="kw">system.time</span>(mantelOutput&lt;-contact<span class="op">::</span><span class="kw">contactCompare_mantel</span>(x.summary, <span class="dt">y.summary =</span> y.summary2, <span class="dt">numPermutations =</span> <span class="dv">1000</span>, <span class="dt">alternative.hyp =</span> <span class="st">&quot;two.sided&quot;</span>, <span class="dt">importBlocks =</span> <span class="ot">FALSE</span>))</a>
 <a class="sourceLine" id="cb39-5" data-line-number="5"></a>
 <a class="sourceLine" id="cb39-6" data-line-number="6">mantelOutput <span class="co">#based on the reported p-value, given an alpha-level of 0.05, we can reject the NULL hypothesis that these two networks are unrelated. (This is as we would expect, because the head X head-contact network is nested within the fullBody-contact network. If they were not similar, we would have a problem.)</span></a></code></pre></div>
-<p>##References</p>
+<p><strong>References</strong></p>
 <p>Farine, D.R., 2017. A guide to null models for animal social network analysis. <em>Methods in Ecology and Evolution</em> 8:1309-1320. <a href="https://doi.org/10.1111/2041-210X.12772" class="uri">https://doi.org/10.1111/2041-210X.12772</a>.</p>
 <p>Farthing, T.S., Dawson, D.E., Sanderson, M.W., and Lanzas, C. 2020. Accounting for space and uncertainty in real-time location system-derived contact networks. <em>Ecology and Evolution</em> 00:1-14. <a href="https://doi.org/10.1002/ece3.6225" class="uri">https://doi.org/10.1002/ece3.6225</a>.</p>
 <p>Mantel, N. 1967. The detection of disease clustering and a generalized regression approach. <em>Cancer Research</em> 27:209–220.</p>

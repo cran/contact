@@ -1,4 +1,4 @@
-69f0bde8e96757684534b34221b267fc *DESCRIPTION
+2a2afa37bb36c9343a3d5057083dc0d7 *DESCRIPTION
 544931262f847f0f11506adfbd7d4a95 *NAMESPACE
 ee3552f207bc423b97c466a7b15c2035 *R/baboons.R
 d45e528145f48e1343279d3c9cf226a8 *R/calves.R
@@ -17,7 +17,7 @@ ea9dd83209bed7a89f0fd84d1ae267b3 *R/datetime.append.R
 eda63df47f42264789ddf823898b4eb2 *R/dist2Area_df.R
 bbcedbfe12f0046634d33017f5cb3bf4 *R/dt.calc.R
 1d2b2de76c109bf65ac72ee86923a0c9 *R/dup.R
-4cafd7cee3bce9b12e1453ee5aced443 *R/findDistThresh.R
+bcca634ff780957b7d8cee1d317a2ad7 *R/findDistThresh.R
 489a0a05c4e67bc5f6df575467ac0bda *R/makePlanar.R
 6e558ce1b8d2eb404257886a3aaef385 *R/mps.R
 53e167290f5e94bf4468c48762d5fcb7 *R/ntwrkEdges.R
@@ -30,15 +30,15 @@ d7afa8afeae249dc86efaa1d8ab6c924 *R/socialEdges.R
 952619ca9198f509667a1a6900d73518 *R/summarizeContacts.R
 8fcfc43569d59066f61667871a61a823 *R/tempAggregate.R
 b45fb20c64668b63ea7f0e09f481da38 *R/timeBlock.append.R
-3726a13cdeb1cea764499e5a2015f230 *build/vignette.rds
+7607f2c0e4c564e8ba22d774a0665351 *build/vignette.rds
 14cafb411e508b32ca31645cf0de38de *data/baboons.rda
 2131235de95668b4610090f4adb58b4f *data/calves.rda
 f60ce25661ee90518a4403314bb8124f *data/calves2018.rda
 d26ade993f4101745712f4a4e675cdfd *data/datalist
 642b6c00350965b986dae9fcd9bd5bfa *inst/CITATION
-8870d0ee6dff4f4ec30a6725bac0f204 *inst/doc/Using_the_contact_package_v1_2_4.R
-e01b326041d7809ae281e850b1ddd7fc *inst/doc/Using_the_contact_package_v1_2_4.Rmd
-04fe914bfaaab430d74175e8def32d4d *inst/doc/Using_the_contact_package_v1_2_4.html
+8870d0ee6dff4f4ec30a6725bac0f204 *inst/doc/Using_the_contact_package_v1_2_5.R
+a62454f5e556158debcfb8b32710f2d7 *inst/doc/Using_the_contact_package_v1_2_5.Rmd
+ddaeedb1e456d79dfac526b8e1036a6e *inst/doc/Using_the_contact_package_v1_2_5.html
 a820d50a3405915b19a740a449c3fc72 *man/baboons.Rd
 db01bcee4d9821b375d3e9f41956e582 *man/calves.Rd
 2d868b6e8fcc1af22dc32a14e803d2af *man/calves2018.Rd
@@ -56,7 +56,7 @@ da636582e547e3b3326676223b0ebee9 *man/datetime.append.Rd
 00b73259e30ffccca619bd68cd6a6750 *man/dist2Area_df.Rd
 0db6dfc69e808430b72cb6e2c43cb530 *man/dt.calc.Rd
 641ee2b00e9d4dbece68473b95b0ecdf *man/dup.Rd
-7e478c21e409397221647c1d288467e7 *man/findDistThresh.Rd
+2de441feb88e256ab896dbd78cdfc500 *man/findDistThresh.Rd
 e5f808f89825ea48074fac0ad7174c15 *man/makePlanar.Rd
 a1f13e8e86d55648599c716070f48b67 *man/mps.Rd
 139fc894823c5e81bec5dfbde3ec348d *man/ntwrkEdges.Rd
@@ -69,4 +69,4 @@ edf14c566959e0a48dbd1a3b61d36fe8 *man/randomizePaths.Rd
 43ab19fd39f4f37cfe4ef081eb8fd3c6 *man/summarizeContacts.Rd
 5b02827cd36d543d81cbd79e11af386f *man/tempAggregate.Rd
 edc693551d941300b04e53db3cb47164 *man/timeBlock.append.Rd
-e01b326041d7809ae281e850b1ddd7fc *vignettes/Using_the_contact_package_v1_2_4.Rmd
+a62454f5e556158debcfb8b32710f2d7 *vignettes/Using_the_contact_package_v1_2_5.Rmd
