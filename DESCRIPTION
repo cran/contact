@@ -1,6 +1,6 @@
 Package: contact
 Title: Creating Contact and Social Networks
-Version: 1.2.5
+Version: 1.2.7
 Authors@R: 
     c(person(given = "Trevor", family = "Farthing", role = c("aut", "cre"),
     email = "tsfarthi@ncsu.edu"), person(given = "Daniel", family = "Dawson",
@@ -29,15 +29,15 @@ Imports: ape (>= 5.3), data.table (>= 1.12.2), doParallel (>= 1.0.15),
 License: CC0
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 BugReports: https://github.com/lanzaslab/contact/issues
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2020-11-16 04:35:07 UTC; tsfarthi
+Packaged: 2021-04-29 09:14:40 UTC; tsfarthi
 Author: Trevor Farthing [aut, cre],
   Daniel Dawson [aut],
   Cristina Lanzas [ctb]
 Maintainer: Trevor Farthing <tsfarthi@ncsu.edu>
 Repository: CRAN
-Date/Publication: 2020-11-16 07:50:17 UTC
+Date/Publication: 2021-04-29 16:40:03 UTC
