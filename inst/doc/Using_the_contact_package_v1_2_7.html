@@ -12,7 +12,7 @@
 
 <meta name="author" content="Trevor S. Farthing" />
 
-<meta name="date" content="2021-04-29" />
+<meta name="date" content="2021-05-14" />
 
 <title>Using the contact package</title>
 
@@ -134,7 +134,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <h1 class="title toc-ignore">Using the contact package</h1>
 <h4 class="author">Trevor S. Farthing</h4>
-<h4 class="date">2021-04-29</h4>
+<h4 class="date">2021-05-14</h4>
 
 
 
@@ -180,7 +180,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(calves.dateTime<span class="ot">&lt;-</span> contact<span class="sc">::</span><span class="fu">datetime.append</span>(<span class="at">x =</span> calves, <span class="at">date =</span> calves<span class="sc">$</span>date, <span class="at">time=</span> calves<span class="sc">$</span>time, <span class="at">dateTime =</span> <span class="cn">NULL</span>, <span class="at">dateFormat =</span> <span class="st">&quot;mdy&quot;</span>, <span class="at">dateFake =</span> <span class="cn">FALSE</span>, <span class="at">startYear =</span> <span class="cn">NULL</span>, <span class="at">tz.in =</span> <span class="st">&quot;UTC&quot;</span>, <span class="at">tz.out =</span> <span class="cn">NULL</span>, <span class="at">month =</span> <span class="cn">FALSE</span>, <span class="at">day =</span> <span class="cn">FALSE</span>, <span class="at">year =</span> <span class="cn">FALSE</span>, <span class="at">hour =</span> <span class="cn">FALSE</span>, <span class="at">minute =</span> <span class="cn">FALSE</span>, <span class="at">second =</span> <span class="cn">FALSE</span>, <span class="at">daySecond =</span> <span class="cn">FALSE</span>, <span class="at">totalSecond =</span> <span class="cn">FALSE</span>))</span>
 <span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.175   0.007   0.183</span></span></code></pre></div>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.155   0.005   0.160</span></span></code></pre></div>
 <p><strong>B.) Calculate distances between the water-trough polygon and calves at each time step.</strong></p>
 <p>First, we must define the location of the water trough. To do this, we read in point-location data for the water-trough vertices.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
@@ -198,7 +198,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(water_distance<span class="ot">&lt;-</span>contact<span class="sc">::</span><span class="fu">dist2Area_df</span>(<span class="at">x =</span> calves.dateTime, <span class="at">y =</span> water_poly, <span class="at">x.id =</span> <span class="st">&quot;calftag&quot;</span>, <span class="at">y.id =</span> <span class="st">&quot;water&quot;</span>, <span class="at">dateTime =</span> <span class="st">&quot;dateTime&quot;</span>, <span class="at">point.x =</span> calves.dateTime<span class="sc">$</span>x, <span class="at">point.y =</span> calves.dateTime<span class="sc">$</span>y, <span class="at">poly.xy =</span> <span class="cn">NULL</span>, <span class="at">parallel =</span> <span class="cn">FALSE</span>, <span class="at">dataType =</span> <span class="st">&quot;Point&quot;</span>, <span class="at">lonlat =</span> <span class="cn">FALSE</span>, <span class="at">numVertices =</span> <span class="cn">NULL</span>)) <span class="co">#note that the poly.xy and numVertices arguments refer to vertices of polygons in x, not y. Because dataType is &quot;Point,&quot; not &quot;Polygon,&quot; these arguments are irrelevant here.</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   5.461   0.065   5.537</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   4.200   0.039   4.240</span></span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(water_distance)</span>
 <span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              dateTime totalIndividuals individualsAtTimestep  id dist.to.water</span></span>
@@ -215,34 +215,34 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>SpThValues <span class="co">#it looks like an adjusted SpTh value of approximately 1.74 m will likely capture 99 to 100% of contacts, defined as instances when point-locations were within 0.333 m of the water trough, given the RTLS accuracy. #Note that because these confidence intervals are obtained from distributions generated from random samples, every time this function is run, results will be slightly different. </span></span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $distribution.summary</span></span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        mean          sd         min         max         TPR </span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.707066931 0.345858463 0.004903568 2.624098306 0.303350000 </span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.706339284 0.345804618 0.004458383 2.523259296 0.305680000 </span></span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $CI_upper</span></span>
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    50%-CI    55%-CI    60%-CI    65%-CI    70%-CI    75%-CI    80%-CI    85%-CI </span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.7078046 0.7078931 0.7079874 0.7080891 0.7082005 0.7083251 0.7084686 0.7086413 </span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.7070769 0.7071654 0.7072596 0.7073613 0.7074727 0.7075972 0.7077407 0.7079135 </span></span>
 <span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    90%-CI    95%-CI    99%-CI </span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.7088659 0.7092105 0.7098841 </span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.7081380 0.7084826 0.7091560 </span></span>
 <span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $CI_lwr</span></span>
 <span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    50%-CI    55%-CI    60%-CI    65%-CI    70%-CI    75%-CI    80%-CI    85%-CI </span></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.7063292 0.7062407 0.7061464 0.7060448 0.7059334 0.7058088 0.7056653 0.7054925 </span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.7056017 0.7055132 0.7054189 0.7053173 0.7052059 0.7050813 0.7049379 0.7047651 </span></span>
 <span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    90%-CI    95%-CI    99%-CI </span></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.7052680 0.7049233 0.7042497 </span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.7045406 0.7041960 0.7035225 </span></span>
 <span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $spTh.adjustments</span></span>
 <span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  spTh_84%Capture  spTh_98%Capture spTh_100%Capture </span></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         1.052925         1.398784         1.744642 </span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         1.052144         1.397949         1.743753 </span></span>
 <span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $contact.frequency</span></span>
 <span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  freq_84%Capture  freq_98%Capture freq_100%Capture </span></span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          0.83535          0.96699          0.99619</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          0.83481          0.96692          0.99616</span></span>
 <span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>CI_99<span class="ot">&lt;-</span><span class="fu">unname</span>(SpThValues[[<span class="st">&quot;spTh.adjustments&quot;</span>]][<span class="dv">3</span>]) <span class="co">#we will use this SpTh value moving forward.</span></span></code></pre></div>
 <p><strong>D.) Identify time points when calves were within the re-adjusted SpTh distance from water trough.</strong></p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(water_contacts <span class="ot">&lt;-</span> contact<span class="sc">::</span><span class="fu">contactDur.area</span>(water_distance, <span class="at">dist.threshold=</span>CI_99,<span class="at">sec.threshold=</span><span class="dv">1</span>, <span class="at">blocking =</span> <span class="cn">FALSE</span>, <span class="at">equidistant.time =</span> <span class="cn">FALSE</span>, <span class="at">parallel =</span> <span class="cn">FALSE</span>, <span class="at">reportParameters =</span> <span class="cn">TRUE</span>)) <span class="co">#Note that because we are not interested in making a time-aggregated network with &gt; 1 temporal levels, we set blocking = FALSE to reduce processing time.</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.223   0.040   0.263</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.182   0.035   0.217</span></span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(water_contacts)</span>
 <span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   indiv.id area.id contact.id contactDuration    contactStartTime</span></span>
@@ -253,17 +253,17 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5      101   water  101-water               1 2016-05-02 00:47:47</span></span>
 <span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6      101   water  101-water               1 2016-05-02 00:47:55</span></span>
 <span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        contactEndTime distThreshold secThreshold equidistant.time</span></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 2016-05-02 00:47:31      1.744642            1            FALSE</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 2016-05-02 00:47:35      1.744642            1            FALSE</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 2016-05-02 00:47:39      1.744642            1            FALSE</span></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4 2016-05-02 00:47:43      1.744642            1            FALSE</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5 2016-05-02 00:47:47      1.744642            1            FALSE</span></span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6 2016-05-02 00:47:55      1.744642            1            FALSE</span></span></code></pre></div>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 2016-05-02 00:47:31      1.743753            1            FALSE</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 2016-05-02 00:47:35      1.743753            1            FALSE</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 2016-05-02 00:47:39      1.743753            1            FALSE</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4 2016-05-02 00:47:43      1.743753            1            FALSE</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5 2016-05-02 00:47:47      1.743753            1            FALSE</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6 2016-05-02 00:47:55      1.743753            1            FALSE</span></span></code></pre></div>
 <p><strong>E.) Visualize the contact network with edgeweights weighted according to number of observed contacts.</strong></p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(water_edges<span class="ot">&lt;-</span> contact<span class="sc">::</span><span class="fu">ntwrkEdges</span>(<span class="at">x =</span> water_contacts, <span class="at">importBlocks =</span> <span class="cn">FALSE</span>, <span class="at">removeDuplicates =</span> <span class="cn">TRUE</span>)) <span class="co">#get specific weighted edges</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.016   0.003   0.020</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.019   0.006   0.024</span></span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(water_edges)</span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   from    to durations</span></span>
